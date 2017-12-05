@@ -28,3 +28,7 @@ nav {
   display: flex;
   justify-content: space-between;
 }
+
+.invisible {
+  display: none;
+}

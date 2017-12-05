@@ -8,6 +8,30 @@ $(document).ready(function() {
   initPanels();
 });
 
+function initFootprints() {
+  $('strong').on('click', function(event) {
+    var polygonlatlngs =
+      JSON.parse(
+        event.target.parentElement.dataset.footprint
+          .replace('POLYGON((','[[')
+          .replace('))', ']]')
+          .replace(/, /g, '],[')
+          .replace(/ /g, ','))
+      .map((e)=>[e[1],e[0]]);
+    var polygon = L.polygon(polygonlatlngs, {color: 'red'}).addTo(map);
+    map.panInsideBounds(polygon.getBounds());
+  });
+  
+  $('#identifier').on('keyup', function(event) {
+    Array.from(document.getElementById('searchresults').children).forEach(function(e) {
+      if(e.children[0].innerHTML.toLowerCase().indexOf(document.getElementById('identifier').value.toLowerCase()) < 0)
+        e.classList.add('invisible');
+      else
+        e.classList.remove('invisible');
+    });
+  });
+}
+
 function initMap() {
   // MAP
   map = L.map('map', {
@@ -19,7 +43,19 @@ function initMap() {
   var osm = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map);
-  L.control.layers({"OpenStreetMap": osm, "Esri": osm}).addTo(map);  // fake choice :D
+  
+  // OVERLAYS
+  //var sentinel = L.tileLayer('http://gis-bigdata:11016/img/S2A_MSIL1C_20170815T102021_N0205_R065_T32TMR_20170815T102513.SAFE/IMG_DATA/B04/{z}/{x}/{y}.png', {
+  //nr14 var sentinel = L.tileLayer('http://gis-bigdata:11016/img/S2A_MSIL1C_20170410T103021_N0204_R108_T32TMR_20170410T103020.SAFE/IMG_DATA/B01/{z}/{x}/{y}.png', {
+  //var sentinel = L.tileLayer('http://gis-bigdata:11016/img/S2A_MSIL2A_20170619T103021_N0205_R108_T32TLS_20170619T103021.SAFE/IMG_DATA/R10m/TCI/{z}/{x}/{y}.png', {
+  var sentinel = L.tileLayer('http://gis-bigdata:11016/img/S2A_MSIL2A_20170805T102031_N0205_R065_T32TMR_20170805T102535.SAFE/IMG_DATA/R10m/TCI/{z}/{x}/{y}.png', {
+  // http://gis-bigdata:11016/img/S2A_MSIL2A_20170805T102031_N0205_R065_T32TMR_20170805T102535.SAFE/IMG_DATA/R10m/TCI/6/33/41.png
+  // http://gis-bigdata:11016/img/S2A_MSIL2A_20170619T103021_N0205_R108_T32TLS_20170619T103021.SAFE/IMG_DATA/R10m/TCI/8/130/90.png [HTTP/1.1 404 Not Found 62ms]
+    tms: true,
+    attribution: 'Sentinel data, public domain'
+  });
+  
+  L.control.layers({"OpenStreetMap": osm}, {"Sentinel": sentinel}).addTo(map);
   
   // SENTINEL IMAGE
   overlay = L.imageOverlay('http://sentinel-s2-l1c.s3.amazonaws.com/tiles/32/U/MC/2017/10/15/0/preview.jpg', [[52,7],[53,9]]);
@@ -85,13 +121,13 @@ function initPanels() {
     pane: `
 <h3>Search</h3>
 <form>
-  <input placeholder="Identifier">
+  <input placeholder="Identifier" id="identifier">
   <input placeholder="Start date">
   <input placeholder="End date">
   <input type="submit" value="Filter">
 </form>
 <h3>Results</h3>
-<ol>
+<ol id='searchresults'>
   <li><strong>S2A_MSIL2A N0205_R108_T32UMC</strong><br>2017-09-27 10:30:21</li>
   <li><strong>S2A_MSIL2A N0205_R109_T32UMC</strong><br>2017-09-27 10:35:18</li>
   <li><strong>S2A_MSIL2A N0205_R110_T32UMC</strong><br>2017-09-27 10:40:27</li>
@@ -151,8 +187,18 @@ function initPanels() {
   // SHOWING/HIDING stuff when appropriate
   sidebar.on('content', function(e) {
     if(e.id=='search') {
+      $.get('http://gis-bigdata:11016/datasets', function(result) {
+        document.getElementById('searchresults').innerHTML = result
+        .map((e) => 
+          '<li data-footprint="'+e.MTD.metadata[''].FOOTPRINT+'" data-tms="'+e.tmsUrls.TCI+'">'+
+            '<strong>'+e.sceneName.replace(/_/g, '_&shy;')+'</strong>'+
+            '<br>'+
+            new Date(e.MTD.metadata[''].PRODUCT_START_TIME).toLocaleString()+
+          '</li>'
+        ).join('\r\n');
+      });
       map.addControl(drawControl);
-      bboxes.addTo(map);
+      //bboxes.addTo(map);
     } else {
       map.removeControl(drawControl);
       bboxes.removeFrom(map)
