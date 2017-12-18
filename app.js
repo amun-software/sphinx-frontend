@@ -9,29 +9,27 @@ $(document).ready(function() {
   initPanels();
 });
 
-function initFootprints() {
-  $('strong').on('click', function(event) {
-    var polygonlatlngs =
-      JSON.parse(
-        event.target.parentElement.dataset.footprint
-          .replace('POLYGON((','[[')
-          .replace('))', ']]')
-          .replace(/, /g, '],[')
-          .replace(/ /g, ','))
-      .map((e)=>[e[1],e[0]]);
-    var polygon = L.polygon(polygonlatlngs, {color: 'red'}).addTo(map);
-    map.panInsideBounds(polygon.getBounds());
-    sentinel.bounds = polygon.getBounds();
-    sentinel.setUrl(event.target.parentElement.dataset.tmsurl + '/{z}/{x}/{y}.png');
-  });
+function showFootprintOnMap(event) {
+  var polygonlatlngs =
+    JSON.parse(
+      event.target.parentElement.dataset.footprint
+        .replace('POLYGON((','[[')
+        .replace('))', ']]')
+        .replace(/, /g, '],[')
+        .replace(/ /g, ','))
+    .map((e)=>[e[1],e[0]]);
+  var polygon = L.polygon(polygonlatlngs, {color: 'red'}).addTo(map);
+  map.panInsideBounds(polygon.getBounds());
+  sentinel.bounds = polygon.getBounds();
+  sentinel.setUrl(event.target.parentElement.dataset.tmsurl + '/{z}/{x}/{y}.png');
+}
   
-  $('#identifier').on('keyup', function(event) {
-    Array.from(document.getElementById('searchresults').children).forEach(function(e) {
-      if(e.children[0].innerHTML.toLowerCase().indexOf(document.getElementById('identifier').value.toLowerCase()) < 0)
-        e.classList.add('invisible');
-      else
-        e.classList.remove('invisible');
-    });
+function filterResults(event) {
+  Array.from(document.getElementById('searchresults').children).forEach(function(e) {
+    if(e.dataset.scenename.toLowerCase().indexOf(document.getElementById('identifier').value.toLowerCase()) < 0)
+      e.classList.add('invisible');
+    else
+      e.classList.remove('invisible');
   });
 }
 
@@ -124,7 +122,7 @@ function initPanels() {
     pane: `
 <h3>Search</h3>
 <form>
-  <input placeholder="Identifier" id="identifier">
+  <input placeholder="Identifier" id="identifier" onkeyup="filterResults(event)">
   <input placeholder="Start date">
   <input placeholder="End date">
   <input type="submit" value="Filter">
@@ -193,7 +191,7 @@ function initPanels() {
       $.get('http://gis-bigdata:11016/datasets', function(result) {
         document.getElementById('searchresults').innerHTML = result
         .map((e) => 
-          '<li data-footprint="'+e.MTD.metadata[''].FOOTPRINT+'" data-tmsurl="'+(e.tmsUrls.R10m ? e.tmsUrls.R10m.TCI : e.tmsUrls.TCI)+'">'+
+          '<li onclick="showFootprintOnMap(event)" data-footprint="'+e.MTD.metadata[''].FOOTPRINT+'" data-tmsurl="'+(e.tmsUrls.R10m ? e.tmsUrls.R10m.TCI : e.tmsUrls.TCI)+'" data-scenename="' + e.sceneName + '">'+
             '<strong>'+e.sceneName.replace(/_/g, '_&shy;')+'</strong>'+
             '<br>'+
             new Date(e.MTD.metadata[''].PRODUCT_START_TIME).toLocaleString()+
