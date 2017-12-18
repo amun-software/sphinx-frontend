@@ -3,6 +3,7 @@ var drawControl;
 var bboxes;
 var overlay;
 var sentinel;
+var polygon;
 
 $(document).ready(function() {
   initMap();
@@ -18,10 +19,10 @@ function showFootprintOnMap(event) {
         .replace(/, /g, '],[')
         .replace(/ /g, ','))
     .map((e)=>[e[1],e[0]]);
-  var polygon = L.polygon(polygonlatlngs, {color: 'red'}).addTo(map);
+  polygon.setLatLngs(polygonlatlngs);
   map.panInsideBounds(polygon.getBounds());
   sentinel.bounds = polygon.getBounds();
-  sentinel.setUrl(event.target.parentElement.dataset.tmsurl + '/{z}/{x}/{y}.png');
+  sentinel.setUrl(event.target.parentElement.dataset.tciurl + '/{z}/{x}/{y}.png');
 }
   
 function filterResults(event) {
@@ -31,6 +32,23 @@ function filterResults(event) {
     else
       e.classList.remove('invisible');
   });
+}
+
+function showDetails(event) {
+  const info = (event.target.tagName=='LI' ? event.target.dataset : event.target.parentElement.dataset);
+  sidebar.open('details');
+  document.getElementById('details-identifier').innerHTML = info.scenename.replace(/_/g, '_&shy;');
+  document.getElementById('details-datetime').innerHTML = info.datetime;
+  document.getElementById('details-cloudcoverage').innerHTML = info.cloudcoverage;
+  document.getElementById('details-availablebands').innerHTML = info.tmsurls
+    .split(',')
+    .map((e)=>'<option value="' + e + '">' + e.split('/').pop() + '</option>')
+    .join("\r\n");
+  map.fitBounds(polygon.getBounds());
+}
+
+function changeTmsUrl(event) {
+    sentinel.setUrl(event.target.value + '/{z}/{x}/{y}.png');
 }
 
 function initMap() {
@@ -54,7 +72,7 @@ function initMap() {
   // http://gis-bigdata:11016/img/S2A_MSIL2A_20170619T103021_N0205_R108_T32TLS_20170619T103021.SAFE/IMG_DATA/R10m/TCI/8/130/90.png [HTTP/1.1 404 Not Found 62ms]
     tms: true,
     attribution: 'Sentinel data, public domain'
-  });
+  }).addTo(map);
   
   L.control.layers({"OpenStreetMap": osm}, {"Sentinel": sentinel}).addTo(map);
   
@@ -101,6 +119,9 @@ function initMap() {
   map.on('click', function(e) {
     L.marker(e.latlng).bindPopup('Original value:<br>42.1337').addTo(map).openPopup();
   });
+  
+  // POLYGON
+  polygon = new L.polygon([[0,0],[0,0]], {color: 'red', fill: false}).addTo(map);
 }
 
 function initPanels() {
@@ -150,16 +171,18 @@ function initPanels() {
   
   // DETAIL panel
   sidebar.addPanel({
-    id: 'detail',
+    id: 'details',
     tab: '<i class="fa fa-picture-o fa-lg"></i>',
     pane: `
 <h3>Details</h3>
-<p><em>Identifier: S2A_&shy;MSIL2A_&shy;20170927T103021_&shy;N0205_&shy;R108_&shy;T32UMC_&shy;20170927T103018</em></p>
+<p><em id="details-identifier">Identifier: S2A_&shy;MSIL2A_&shy;20170927T103021_&shy;N0205_&shy;R108_&shy;T32UMC_&shy;20170927T103018</em></p>
 <p>
-<strong>Captured:</strong> 2017-09-27 10:30:21<br>
-<strong>Cloud Coverage:</strong> 1.2 %<br>
-<strong>UTM Zone:</strong> T32UMC<br>
+<strong>Captured:</strong> <span id="details-datetime">2017-09-27 10:30:21</span><br>
+<strong>Cloud Coverage:</strong> <span id="details-cloudcoverage">1.2</span>&nbsp;%<br>
+<!--<strong>UTM Zone:</strong> T32UMC<br>-->
+<strong>Band to display:</strong> <select id="details-availablebands" onchange="changeTmsUrl(event)"></select>
 </p>
+<!--
 <p>
 <input type="checkbox"> Grayscale
 <table>
@@ -169,6 +192,7 @@ function initPanels() {
 <tr><td><strong>Grayscale:</strong></td><td><select><option>Green</option></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td><td><input type="range"></td></tr>
 </table>
 </p>
+-->
     `,
     position: 'top'
   });
@@ -191,7 +215,7 @@ function initPanels() {
       $.get('http://gis-bigdata:11016/datasets', function(result) {
         document.getElementById('searchresults').innerHTML = result
         .map((e) => 
-          '<li onclick="showFootprintOnMap(event)" data-footprint="'+e.MTD.metadata[''].FOOTPRINT+'" data-tmsurl="'+(e.tmsUrls.R10m ? e.tmsUrls.R10m.TCI : e.tmsUrls.TCI)+'" data-scenename="' + e.sceneName + '">'+
+          '<li onclick="showFootprintOnMap(event)" ondblclick="showDetails(event)" data-footprint="'+e.MTD.metadata[''].FOOTPRINT+'" data-tmsurls="' + Object.values(e.tmsUrls).join(',') + '" data-tciurl="'+(e.tmsUrls.R10m ? e.tmsUrls.R10m.TCI : e.tmsUrls.TCI)+'" data-scenename="' + e.sceneName + '" data-datetime="' + e.MTD.metadata[''].DATATAKE_1_DATATAKE_SENSING_START + '" data-cloudcoverage="' + e.MTD.metadata[''].CLOUD_COVERAGE_ASSESSMENT + '">'+
             '<strong>'+e.sceneName.replace(/_/g, '_&shy;')+'</strong>'+
             '<br>'+
             new Date(e.MTD.metadata[''].PRODUCT_START_TIME).toLocaleString()+
