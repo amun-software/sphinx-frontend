@@ -4,6 +4,7 @@ var bboxes;
 var overlay;
 var sentinel;
 var polygon;
+var totalcount;
 
 $(document).ready(function() {
   initMap();
@@ -32,6 +33,7 @@ function filterResults(event) {
     else
       e.classList.remove('invisible');
   });
+  document.getElementById('resultcount').innerHTML = totalcount - parseInt($('.invisible').length);
 }
 
 function showDetails(event) {
@@ -131,7 +133,8 @@ function initPanels() {
     tab: '<i class="fa fa-home fa-lg"></i>',
     pane: `
 <h3>Amun Sphinx</h3>
-<p>Explore the wealth of Sentinel-2 data available and use their full potential!</p>    
+<p>Explore the wealth of Sentinel-2 data available and use their full potential!</p>
+<p>Click the maginfying glass on the left to start browsing the datasets.</p>
     `,
     position: 'top'
   });
@@ -148,7 +151,7 @@ function initPanels() {
   <input placeholder="End date">
   <input type="submit" value="Filter">
 </form>
-<h3>Results</h3>
+<h3>Results (<span id="resultcount"></span>)</h3>
 <ol id='searchresults'>
   <li><strong>S2A_MSIL2A N0205_R108_T32UMC</strong><br>2017-09-27 10:30:21</li>
   <li><strong>S2A_MSIL2A N0205_R109_T32UMC</strong><br>2017-09-27 10:35:18</li>
@@ -175,22 +178,30 @@ function initPanels() {
     tab: '<i class="fa fa-picture-o fa-lg"></i>',
     pane: `
 <h3>Details</h3>
-<p><em id="details-identifier">Identifier: S2A_&shy;MSIL2A_&shy;20170927T103021_&shy;N0205_&shy;R108_&shy;T32UMC_&shy;20170927T103018</em></p>
+
 <p>
-<strong>Captured:</strong> <span id="details-datetime">2017-09-27 10:30:21</span><br>
-<strong>Cloud Coverage:</strong> <span id="details-cloudcoverage">1.2</span>&nbsp;%<br>
-<!--<strong>UTM Zone:</strong> T32UMC<br>-->
-<strong>Band to display:</strong> <select id="details-availablebands" onchange="changeTmsUrl(event)"></select>
+  <strong>Identifier:</strong> <em id="details-identifier">S2A_&shy;MSIL2A_&shy;20170927T103021_&shy;N0205_&shy;R108_&shy;T32UMC_&shy;20170927T103018</em>
 </p>
+
+<p>
+  <strong>Captured:</strong> <span id="details-datetime">2017-09-27 10:30:21</span><br>
+  <strong>Cloud Coverage:</strong> <span id="details-cloudcoverage">1.2</span>&nbsp;%<br>
+  <!--<strong>UTM Zone:</strong> T32UMC<br>-->
+</p>
+
+<p>
+  <strong>Band to display:</strong> <select id="details-availablebands" onchange="changeTmsUrl(event)"></select>
+</p>
+
 <!--
 <p>
-<input type="checkbox"> Grayscale
-<table>
-<tr><td><strong>Red:</strong></td><td><select><option>Red</option></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td><td><input type="range"></td></tr>
-<tr><td><strong>Green:</strong></td><td><select><option>Infrared</option></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td><td><input type="range"></td></tr>
-<tr><td><strong>Blue:</strong></td><td><select><option>Green</option></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td><td><input type="range"></td></tr>
-<tr><td><strong>Grayscale:</strong></td><td><select><option>Green</option></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td><td><input type="range"></td></tr>
-</table>
+  <input type="checkbox"> Grayscale
+  <table>
+    <tr><td><strong>Red:</strong></td><td><select><option>Red</option></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td><td><input type="range"></td></tr>
+    <tr><td><strong>Green:</strong></td><td><select><option>Infrared</option></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td><td><input type="range"></td></tr>
+    <tr><td><strong>Blue:</strong></td><td><select><option>Green</option></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td><td><input type="range"></td></tr>
+    <tr><td><strong>Grayscale:</strong></td><td><select><option>Green</option></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td><td><input type="range"></td></tr>
+  </table>
 </p>
 -->
     `,
@@ -221,6 +232,9 @@ function initPanels() {
             new Date(e.MTD.metadata[''].PRODUCT_START_TIME).toLocaleString()+
           '</li>'
         ).join('\r\n');
+        totalcount = result.length;
+        document.getElementById('resultcount').innerHTML = totalcount;
+        filterResults();
       });
       map.addControl(drawControl);
       //bboxes.addTo(map);
@@ -235,4 +249,6 @@ function initPanels() {
       overlay.removeFrom(map);
     }
   });
+  
+  sidebar.open('home');
 }
