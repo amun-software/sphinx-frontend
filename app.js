@@ -28,11 +28,14 @@ function showFootprintOnMap(event) {
   
 function filterResults(event) {
   var identifier = document.getElementById('identifier').value.toLowerCase();
+  var identifiersubstrings = identifier.split(' ');
   var startdate = document.getElementById('startdate').value.toLowerCase();
   var enddate = document.getElementById('enddate').value.toLowerCase();
   Array.from(document.getElementById('searchresults').children).forEach(function(e) {
     if(
-      e.dataset.scenename.toLowerCase().indexOf(identifier) < 0 ||
+      identifiersubstrings
+        .map((substring) => e.dataset.scenename.toLowerCase().indexOf(substring) < 0)
+        .reduce((e1,e2) => e1||e2) ||
       startdate != '' && e.dataset.datetime < startdate ||
       enddate   != '' && e.dataset.datetime > enddate
     )
