@@ -61,6 +61,12 @@ function changeTmsUrl(event) {
   sentinel.setUrl(event.target.value + '/{z}/{x}/{y}.png');
 }
 
+function changeOpacity(event) {
+  console.log('changed opacity');
+  sentinel.setOpacity(event.target.value / 100);
+  event.target.nextElementSibling.innerHTML = event.target.value + '&nbsp;%';
+}
+
 function initMap() {
   // MAP
   map = L.map('map', {
@@ -198,17 +204,23 @@ function initPanels() {
 <h3>Details</h3>
 
 <p>
-  <strong>Identifier:</strong> <em id="details-identifier">S2A_&shy;MSIL2A_&shy;20170927T103021_&shy;N0205_&shy;R108_&shy;T32UMC_&shy;20170927T103018</em>
+  <strong>Identifier:</strong> <em id="details-identifier"></em>
 </p>
 
 <p>
-  <strong>Captured:</strong> <span id="details-datetime">2017-09-27 10:30:21</span><br>
-  <strong>Cloud Coverage:</strong> <span id="details-cloudcoverage">1.2</span>&nbsp;%<br>
-  <!--<strong>UTM Zone:</strong> T32UMC<br>-->
+  <strong>Captured:</strong> <span id="details-datetime"></span><br>
+  <strong>Cloud Coverage:</strong> <span id="details-cloudcoverage"></span>&nbsp;%<br>
+  <!--<strong>UTM Zone:</strong><br>-->
 </p>
 
 <p>
   <strong>Band to display:</strong> <select id="details-availablebands" onchange="changeTmsUrl(event)"></select>
+</p>
+
+<p>
+  <strong>Opacity:</strong>
+  <input type="range" min="0" max="100" step="1" value="100" id="details-opacity" onchange="changeOpacity(event)" />
+  <span>100&nbsp;%</span>
 </p>
 
 <!--

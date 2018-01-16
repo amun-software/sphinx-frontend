@@ -20,6 +20,13 @@ input[type="checkbox"], input[type="radio"] {
   width: auto;
 }
 
+input[type="range"] {
+  display: inline;
+  width: 50%;
+  padding: 0;
+  margin: 0;
+}
+
 li {
   margin-bottom: 10px;
 }
