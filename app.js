@@ -21,8 +21,6 @@ function showFootprintOnMap(event) {
     .map((e)=>[e[1],e[0]]);
   polygon.setLatLngs(polygonlatlngs);
   map.panInsideBounds(polygon.getBounds());
-  sentinel.bounds = polygon.getBounds();
-  sentinel.setUrl(event.target.parentElement.dataset.tciurl + '/{z}/{x}/{y}.png');
 }
   
 function filterResults(event) {
@@ -48,18 +46,19 @@ function filterResults(event) {
 function showDetails(event) {
   const info = (event.target.tagName=='LI' ? event.target.dataset : event.target.parentElement.dataset);
   sidebar.open('details');
-  document.getElementById('details-identifier').innerHTML = info.scenename.replace(/_/g, '_&shy;');
+  document.getElementById('details-identifier').innerHTML = info.scenename.replace(/_/g, '_&#8203;');
   document.getElementById('details-datetime').innerHTML = info.datetime;
   document.getElementById('details-cloudcoverage').innerHTML = info.cloudcoverage;
   document.getElementById('details-availablebands').innerHTML = info.tmsurls
     .split(',')
-    .map((e)=>'<option value="' + e + '">' + e.split('/').pop() + '</option>')
+    .map((e)=>'<option value="' + e + '">' + e.replace(/^.*IMG_DATA\//, '') + '</option>')
     .join("\r\n");
   map.fitBounds(polygon.getBounds());
+  sentinel.setUrl(info.tmsurls.split(',')[0] + '/{z}/{x}/{y}.png');
 }
 
 function changeTmsUrl(event) {
-    sentinel.setUrl(event.target.value + '/{z}/{x}/{y}.png');
+  sentinel.setUrl(event.target.value + '/{z}/{x}/{y}.png');
 }
 
 function initMap() {
@@ -83,7 +82,7 @@ function initMap() {
   };
   
   // SENTINEL OVERLAY
-  sentinel = L.tileLayer('http://gis-bigdata:11016/img/S2A_MSIL2A_20170805T102031_N0205_R065_T32TMR_20170805T102535.SAFE/IMG_DATA/R10m/TCI/{z}/{x}/{y}.png', {
+  sentinel = L.tileLayer('', {
     tms: true,
     attribution: 'Sentinel data, public domain'
   }).addTo(map);
@@ -133,7 +132,7 @@ function initMap() {
   });
   
   // POLYGON
-  polygon = new L.polygon([[0,0],[0,0]], {color: 'red', fill: false}).addTo(map);
+  polygon = new L.polygon([], {color: 'red', fill: false}).addTo(map);
 }
 
 function initPanels() {
@@ -244,12 +243,21 @@ function initPanels() {
     if(e.id=='search') {
       $.get('http://gis-bigdata:11016/datasets', function(result) {
         document.getElementById('searchresults').innerHTML = result
+        .sort((e1,e2) => e1.MTD.metadata[''].PRODUCT_START_TIME < e2.MTD.metadata[''].PRODUCT_START_TIME)
         .map((e) => 
-          '<li onclick="showFootprintOnMap(event)" ondblclick="showDetails(event)" data-footprint="'+e.MTD.metadata[''].FOOTPRINT+'" data-tmsurls="' + Object.values(e.tmsUrls).join(',') + '" data-tciurl="'+(e.tmsUrls.R10m ? e.tmsUrls.R10m.TCI : e.tmsUrls.TCI)+'" data-scenename="' + e.sceneName + '" data-datetime="' + e.MTD.metadata[''].DATATAKE_1_DATATAKE_SENSING_START + '" data-cloudcoverage="' + e.MTD.metadata[''].CLOUD_COVERAGE_ASSESSMENT + '">'+
-            '<strong>'+e.sceneName.replace(/_/g, '_&shy;')+'</strong>'+
-            '<br>'+
-            new Date(e.MTD.metadata[''].PRODUCT_START_TIME).toLocaleString()+
-          '</li>'
+          `<li
+            onclick="showFootprintOnMap(event)"
+            ondblclick="showDetails(event)"
+            data-footprint="${e.MTD.metadata[''].FOOTPRINT}"
+            data-tmsurls="${(e.tmsUrls.R10m != undefined ? Object.values(e.tmsUrls.R10m).join(`,`).concat(Object.values(e.tmsUrls.R20m).join(`,`).concat(Object.values(e.tmsUrls.R60m).join(`,`))) : Object.values(e.tmsUrls).join(`,`))}"
+            data-tciurl="${(e.tmsUrls.R10m ? e.tmsUrls.R10m.TCI : e.tmsUrls.TCI)}"
+            data-scenename="${e.sceneName}"
+            data-datetime="${e.MTD.metadata[''].DATATAKE_1_DATATAKE_SENSING_START}"
+            data-cloudcoverage="${e.MTD.metadata[''].CLOUD_COVERAGE_ASSESSMENT}">
+            <strong>${e.sceneName.replace(/_/g, '_&#8203;')}</strong>
+            <br>
+            ${new Date(e.MTD.metadata[''].PRODUCT_START_TIME).toLocaleString()}
+          </li>`
         ).join('\r\n');
         totalcount = result.length;
         document.getElementById('resultcount').innerHTML = totalcount;
