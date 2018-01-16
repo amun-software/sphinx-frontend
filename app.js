@@ -1,7 +1,6 @@
 var editableLayers;
 var drawControl;
 var bboxes;
-var overlay;
 var sentinel;
 var polygon;
 var totalcount;
@@ -71,25 +70,26 @@ function initMap() {
   });
   
   // BASEMAPS
-  var osm = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-  }).addTo(map);
+  var basemaps = {
+    'OpenStreetMap': L.tileLayer.provider('OpenStreetMap.Mapnik').addTo(map),
+    'Esri Road': L.tileLayer.provider('Esri.WorldStreetMap'),
+    'OpenTopoMap': L.tileLayer.provider('OpenTopoMap'),
+    'Esri Topo': L.tileLayer.provider('Esri.WorldTopoMap'),
+    'Esri Shaded Relief': L.tileLayer.provider('Esri.WorldShadedRelief'),
+    'Esri Satellite': L.tileLayer.provider('Esri.WorldImagery'),
+    'OpenStreetMap Gray': L.tileLayer.provider('OpenStreetMap.BlackAndWhite'),
+    'Esri Gray': L.tileLayer.provider('Esri.WorldGrayCanvas'),
+    'Stamen Gray': L.tileLayer.provider('Stamen.TonerLite')
+  };
   
-  // OVERLAYS
-  //var sentinel = L.tileLayer('http://gis-bigdata:11016/img/S2A_MSIL1C_20170815T102021_N0205_R065_T32TMR_20170815T102513.SAFE/IMG_DATA/B04/{z}/{x}/{y}.png', {
-  //nr14 var sentinel = L.tileLayer('http://gis-bigdata:11016/img/S2A_MSIL1C_20170410T103021_N0204_R108_T32TMR_20170410T103020.SAFE/IMG_DATA/B01/{z}/{x}/{y}.png', {
-  //var sentinel = L.tileLayer('http://gis-bigdata:11016/img/S2A_MSIL2A_20170619T103021_N0205_R108_T32TLS_20170619T103021.SAFE/IMG_DATA/R10m/TCI/{z}/{x}/{y}.png', {
+  // SENTINEL OVERLAY
   sentinel = L.tileLayer('http://gis-bigdata:11016/img/S2A_MSIL2A_20170805T102031_N0205_R065_T32TMR_20170805T102535.SAFE/IMG_DATA/R10m/TCI/{z}/{x}/{y}.png', {
-  // http://gis-bigdata:11016/img/S2A_MSIL2A_20170805T102031_N0205_R065_T32TMR_20170805T102535.SAFE/IMG_DATA/R10m/TCI/6/33/41.png
-  // http://gis-bigdata:11016/img/S2A_MSIL2A_20170619T103021_N0205_R108_T32TLS_20170619T103021.SAFE/IMG_DATA/R10m/TCI/8/130/90.png [HTTP/1.1 404 Not Found 62ms]
     tms: true,
     attribution: 'Sentinel data, public domain'
   }).addTo(map);
   
-  L.control.layers({"OpenStreetMap": osm}, {"Sentinel": sentinel}).addTo(map);
-  
-  // SENTINEL IMAGE
-  overlay = L.imageOverlay('http://sentinel-s2-l1c.s3.amazonaws.com/tiles/32/U/MC/2017/10/15/0/preview.jpg', [[52,7],[53,9]]);
+  // LAYER CONTROL
+  L.control.layers(basemaps, {'Sentinel Overlay': sentinel}).addTo(map);
   
   // SIDEBAR
   sidebar = L.control.sidebar('sidebar').addTo(map);
@@ -260,12 +260,6 @@ function initPanels() {
     } else {
       map.removeControl(drawControl);
       bboxes.removeFrom(map)
-    }
-    
-    if(e.id=='detail') {
-      overlay.addTo(map);
-    } else {
-      overlay.removeFrom(map);
     }
   });
   
