@@ -27,8 +27,15 @@ function showFootprintOnMap(event) {
 }
   
 function filterResults(event) {
+  var identifier = document.getElementById('identifier').value.toLowerCase();
+  var startdate = document.getElementById('startdate').value.toLowerCase();
+  var enddate = document.getElementById('enddate').value.toLowerCase();
   Array.from(document.getElementById('searchresults').children).forEach(function(e) {
-    if(e.dataset.scenename.toLowerCase().indexOf(document.getElementById('identifier').value.toLowerCase()) < 0)
+    if(
+      e.dataset.scenename.toLowerCase().indexOf(identifier) < 0 ||
+      startdate != '' && e.dataset.datetime < startdate ||
+      enddate   != '' && e.dataset.datetime > enddate
+    )
       e.classList.add('invisible');
     else
       e.classList.remove('invisible');
@@ -147,8 +154,8 @@ function initPanels() {
 <h3>Search</h3>
 <form>
   <input placeholder="Identifier" id="identifier" onkeyup="filterResults(event)">
-  <input placeholder="Start date">
-  <input placeholder="End date">
+  <input placeholder="Start date" id="startdate" onkeyup="filterResults(event)" data-toggle="datepicker" >  
+  <input placeholder="End date" id="enddate" onkeyup="filterResults(event)" data-toggle="datepicker" >
   <input type="submit" value="Filter">
 </form>
 <h3>Results (<span id="resultcount"></span>)</h3>
@@ -171,6 +178,15 @@ function initPanels() {
     `,
     position: 'top'
   });
+  
+  $.fn.datepicker.languages['de-DE'] = {
+    days: ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'],
+    daysShort: ['Son', 'Mon', 'Die', 'Mit', 'Don', 'Fre', 'Sam'],
+    daysMin: ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'],
+    months: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'],
+    monthsShort: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+  };
+  $('[data-toggle="datepicker"]').datepicker({autoHide: true, format: 'yyyy-mm-dd', language: 'de-DE', zIndex:3000});
   
   // DETAIL panel
   sidebar.addPanel({
