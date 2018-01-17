@@ -39,3 +39,15 @@ nav {
 .invisible {
   display: none;
 }
+
+#details div {
+  margin: 16px 0;
+}
+
+#details input#grayscale:checked + label + input + label + div + div {
+  display: none;
+}
+
+#details input#rgb:checked + label + div {
+  display: none;
+}

@@ -49,16 +49,27 @@ function showDetails(event) {
   document.getElementById('details-identifier').innerHTML = info.scenename.replace(/_/g, '_&#8203;');
   document.getElementById('details-datetime').innerHTML = info.datetime;
   document.getElementById('details-cloudcoverage').innerHTML = info.cloudcoverage;
-  document.getElementById('details-availablebands').innerHTML = info.tmsurls
+  var bandselector = info.tmsurls
     .split(',')
     .map((e)=>'<option value="' + e + '">' + e.replace(/^.*IMG_DATA\//, '') + '</option>')
     .join("\r\n");
+  ['', '-red', '-green', '-blue'].forEach((postfix) => document.getElementById('details-availablebands'+postfix).innerHTML = bandselector);
   map.fitBounds(polygon.getBounds());
   sentinel.setUrl(info.tmsurls.split(',')[0] + '/{z}/{x}/{y}.png');
 }
 
 function changeTmsUrl(event) {
-  sentinel.setUrl(event.target.value + '/{z}/{x}/{y}.png');
+  if(document.querySelector('input[name=colormode]:checked').value == 'grayscale') {
+    sentinel.setUrl(event.target.value + '/{z}/{x}/{y}.png');
+  } else {
+    sentinel.setUrl('http://gis-bigdata:11014/api/tilesDirect?z={z}&x={x}&y={y}'
+      + '&resolution=' + (document.getElementById('details-availablebands-red')  .selectedOptions[0].text.split('/').reverse()[1] || 'NULL')
+      + '&r='          +  document.getElementById('details-availablebands-red')  .selectedOptions[0].text.split('/').pop()
+      + '&g='          +  document.getElementById('details-availablebands-green').selectedOptions[0].text.split('/').pop()
+      + '&b='          +  document.getElementById('details-availablebands-blue') .selectedOptions[0].text.split('/').pop()
+      + '&scene='      +  document.getElementById('details-identifier').innerHTML.replace('.SAFE', '').replace(/\W/g, '')
+    );
+  }
 }
 
 function changeOpacity(event) {
@@ -213,9 +224,21 @@ function initPanels() {
   <!--<strong>UTM Zone:</strong><br>-->
 </p>
 
-<p>
-  <strong>Band to display:</strong> <select id="details-availablebands" onchange="changeTmsUrl(event)"></select>
-</p>
+<div>
+  Color mode:
+  <input type="radio" name="colormode" id="grayscale" value="grayscale" checked/><label for="grayscale">Grayscale</label>
+  <input type="radio" name="colormode" id="rgb" value="rgb"/><label for="rgb">RGB</label>
+  <div>
+    <strong>Band to display:</strong> <select id="details-availablebands" onchange="changeTmsUrl(event)"></select>
+  </div>
+  <div>
+    <table>
+      <tr><td><strong>Red:  </strong></td><td><select id="details-availablebands-red"   onchange="changeTmsUrl(event)"></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td></tr>
+      <tr><td><strong>Green:</strong></td><td><select id="details-availablebands-green" onchange="changeTmsUrl(event)"></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td></tr>
+      <tr><td><strong>Blue: </strong></td><td><select id="details-availablebands-blue"  onchange="changeTmsUrl(event)"></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td></tr>
+    </table>
+  </div>
+</div>
 
 <p>
   <strong>Opacity:</strong>
