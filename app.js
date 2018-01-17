@@ -173,8 +173,8 @@ function initPanels() {
 <h3>Search</h3>
 <form>
   <input placeholder="Identifier" id="identifier" onkeyup="filterResults(event)">
-  <input placeholder="Start date" id="startdate" onkeyup="filterResults(event)" data-toggle="datepicker" >  
-  <input placeholder="End date" id="enddate" onkeyup="filterResults(event)" data-toggle="datepicker" >
+  <input placeholder="Start date" id="startdate" onkeyup="filterResults(event)" data-toggle="datepicker">
+  <input placeholder="End date" id="enddate" onkeyup="filterResults(event)" data-toggle="datepicker">
   <input type="submit" value="Filter">
 </form>
 <h3>Results (<span id="resultcount"></span>)</h3>
@@ -183,7 +183,7 @@ function initPanels() {
   <li><strong>S2A_MSIL2A N0205_R109_T32UMC</strong><br>2017-09-27 10:35:18</li>
   <li><strong>S2A_MSIL2A N0205_R110_T32UMC</strong><br>2017-09-27 10:40:27</li>
   <li><strong>S2A_MSIL2A N0205_R111_T32UMC</strong><br>2017-09-27 10:45:22</li>
-  <li><strong>S2A_MSIL2A N0205_R112_T32UMC</strong><br>2017-09-27 10:50:13</li>  
+  <li><strong>S2A_MSIL2A N0205_R112_T32UMC</strong><br>2017-09-27 10:50:13</li>
 </ol>
 <nav>
   <button>&lt;</button>
@@ -193,7 +193,7 @@ function initPanels() {
     <button>3</button>
   </div>
   <button>&gt;</button>
-</nav>    
+</nav>
     `,
     position: 'top'
   });
@@ -203,7 +203,7 @@ function initPanels() {
     daysShort: ['Son', 'Mon', 'Die', 'Mit', 'Don', 'Fre', 'Sam'],
     daysMin: ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'],
     months: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'],
-    monthsShort: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+    monthsShort: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
   };
   $('[data-toggle="datepicker"]').datepicker({autoHide: true, format: 'yyyy-mm-dd', language: 'de-DE', zIndex:3000});
   
@@ -214,18 +214,24 @@ function initPanels() {
     pane: `
 <h3>Details</h3>
 
-<p>
+<div>
   <strong>Identifier:</strong> <em id="details-identifier"></em>
-</p>
+</div>
 
-<p>
+<div>
   <strong>Captured:</strong> <span id="details-datetime"></span><br>
   <strong>Cloud Coverage:</strong> <span id="details-cloudcoverage"></span>&nbsp;%<br>
   <!--<strong>UTM Zone:</strong><br>-->
-</p>
+</div>
 
 <div>
-  Color mode:
+  <strong>Opacity:</strong>
+  <input type="range" min="0" max="100" step="1" value="100" id="details-opacity" onchange="changeOpacity(event)" />
+  <span>100&nbsp;%</span>
+</div>
+
+<div>
+  <strong>Color mode:</strong>
   <input type="radio" name="colormode" id="grayscale" value="grayscale" checked/><label for="grayscale">Grayscale</label>
   <input type="radio" name="colormode" id="rgb" value="rgb"/><label for="rgb">RGB</label>
   <div>
@@ -239,25 +245,7 @@ function initPanels() {
     </table>
   </div>
 </div>
-
-<p>
-  <strong>Opacity:</strong>
-  <input type="range" min="0" max="100" step="1" value="100" id="details-opacity" onchange="changeOpacity(event)" />
-  <span>100&nbsp;%</span>
-</p>
-
-<!--
-<p>
-  <input type="checkbox"> Grayscale
-  <table>
-    <tr><td><strong>Red:</strong></td><td><select><option>Red</option></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td><td><input type="range"></td></tr>
-    <tr><td><strong>Green:</strong></td><td><select><option>Infrared</option></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td><td><input type="range"></td></tr>
-    <tr><td><strong>Blue:</strong></td><td><select><option>Green</option></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td><td><input type="range"></td></tr>
-    <tr><td><strong>Grayscale:</strong></td><td><select><option>Green</option></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td><td><input type="range"></td></tr>
-  </table>
-</p>
--->
-    `,
+`,
     position: 'top'
   });
   
@@ -279,12 +267,12 @@ function initPanels() {
       $.get('http://gis-bigdata:11016/datasets', function(result) {
         document.getElementById('searchresults').innerHTML = result
         .sort((e1,e2) => e1.MTD.metadata[''].PRODUCT_START_TIME < e2.MTD.metadata[''].PRODUCT_START_TIME)
-        .map((e) => 
+        .map((e) =>
           `<li
             onclick="showFootprintOnMap(event)"
             ondblclick="showDetails(event)"
             data-footprint="${e.MTD.metadata[''].FOOTPRINT}"
-            data-tmsurls="${(e.tmsUrls.R10m != undefined ? Object.values(e.tmsUrls.R10m).join(`,`).concat(Object.values(e.tmsUrls.R20m).join(`,`).concat(Object.values(e.tmsUrls.R60m).join(`,`))) : Object.values(e.tmsUrls).join(`,`))}"
+            data-tmsurls="${(e.tmsUrls.R10m != undefined ? Object.values(e.tmsUrls.R10m).join(',').concat(Object.values(e.tmsUrls.R20m).join(',').concat(Object.values(e.tmsUrls.R60m).join(','))) : Object.values(e.tmsUrls).join(','))}"
             data-tciurl="${(e.tmsUrls.R10m ? e.tmsUrls.R10m.TCI : e.tmsUrls.TCI)}"
             data-scenename="${e.sceneName}"
             data-datetime="${e.MTD.metadata[''].DATATAKE_1_DATATAKE_SENSING_START}"
