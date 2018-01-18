@@ -10,31 +10,37 @@ $(document).ready(function() {
   initPanels();
 });
 
+function getPolygonCoords(footprint) {
+  return JSON.parse(
+    footprint
+    .replace('POLYGON((','[[')
+    .replace('))', ']]')
+    .replace(/, /g, '],[')
+    .replace(/ /g, ',')
+  )
+  .map((e)=>[e[1],e[0]]);
+}
+
 function showFootprintOnMap(event) {
-  var polygonlatlngs =
-    JSON.parse(
-      event.target.parentElement.dataset.footprint
-        .replace('POLYGON((','[[')
-        .replace('))', ']]')
-        .replace(/, /g, '],[')
-        .replace(/ /g, ','))
-    .map((e)=>[e[1],e[0]]);
+  var polygonlatlngs = JSON.parse(event.target.parentElement.dataset.polygoncoords);
   polygon.setLatLngs(polygonlatlngs);
   map.panInsideBounds(polygon.getBounds());
 }
   
-function filterResults(event) {
+function filterResults() {
   var identifier = document.getElementById('identifier').value.toLowerCase();
   var identifiersubstrings = identifier.split(' ');
   var startdate = document.getElementById('startdate').value.toLowerCase();
   var enddate = document.getElementById('enddate').value.toLowerCase();
+  var bbox = (editableLayers.getLayers().length > 0 ? editableLayers.getLayers()[0].getBounds() : undefined);
   Array.from(document.getElementById('searchresults').children).forEach(function(e) {
     if(
       identifiersubstrings
         .map((substring) => e.dataset.scenename.toLowerCase().indexOf(substring) < 0)
         .reduce((e1,e2) => e1||e2) ||
       startdate != '' && e.dataset.datetime < startdate ||
-      enddate   != '' && e.dataset.datetime > enddate
+      enddate   != '' && e.dataset.datetime > enddate ||
+      bbox != undefined && bbox.intersects(JSON.parse(e.dataset.polygoncoords)) == false
     )
       e.classList.add('invisible');
     else
@@ -136,6 +142,7 @@ function initMap() {
   drawControl = new L.Control.Draw(options);
   map.on(L.Draw.Event.CREATED, function (e) {
     editableLayers.addLayer(e.layer);
+    filterResults();
   });
   map.on('draw:drawstart', function (e) {
     editableLayers.clearLayers();  // remove old rectangle when drawing a new one
@@ -178,9 +185,9 @@ function initPanels() {
     pane: `
 <h3>Search</h3>
 <form>
-  <input placeholder="Identifier" id="identifier" onkeyup="filterResults(event)">
-  <input placeholder="Start date" id="startdate" onkeyup="filterResults(event)" data-toggle="datepicker">
-  <input placeholder="End date" id="enddate" onkeyup="filterResults(event)" data-toggle="datepicker">
+  <input placeholder="Identifier" id="identifier" onkeyup="filterResults()">
+  <input placeholder="Start date" id="startdate" onchange="filterResults()" data-toggle="datepicker">
+  <input placeholder="End date" id="enddate" onchange="filterResults()" data-toggle="datepicker">
   <input type="submit" value="Filter">
 </form>
 <h3>Results (<span id="resultcount"></span>)</h3>
@@ -278,6 +285,7 @@ function initPanels() {
             onclick="showFootprintOnMap(event)"
             ondblclick="showDetails(event)"
             data-footprint="${e.MTD.metadata[''].FOOTPRINT}"
+            data-polygoncoords="${JSON.stringify(getPolygonCoords(e.MTD.metadata[''].FOOTPRINT))}"
             data-tmsurls="${(e.tmsUrls.R10m != undefined ? Object.values(e.tmsUrls.R10m).join(',').concat(Object.values(e.tmsUrls.R20m).join(',').concat(Object.values(e.tmsUrls.R60m).join(','))) : Object.values(e.tmsUrls).join(','))}"
             data-scenename="${e.sceneName}"
             data-datetime="${e.MTD.metadata[''].DATATAKE_1_DATATAKE_SENSING_START}"
