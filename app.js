@@ -55,14 +55,14 @@ function showDetails(event) {
     .join("\r\n");
   ['', '-red', '-green', '-blue'].forEach((postfix) => document.getElementById('details-availablebands'+postfix).innerHTML = bandselector);
   map.fitBounds(polygon.getBounds());
-  sentinel.setUrl(info.tmsurls.split(',')[0] + '/{z}/{x}/{y}.png');
+  changeTmsUrl(info.tmsurls.split(',')[0] + '/{z}/{x}/{y}.png');
 }
 
-function changeTmsUrl(event) {
-  if(document.querySelector('input[name=colormode]:checked').value == 'grayscale') {
-    sentinel.setUrl(event.target.value + '/{z}/{x}/{y}.png');
+function changeTmsUrl(tmsurl = undefined) {
+  if(tmsurl != undefined && document.querySelector('input[name=colormode]:checked').value == 'grayscale') {
+    sentinel.setUrl(tmsurl + '/{z}/{x}/{y}.png');
   } else {
-    sentinel.setUrl('http://gis-bigdata:11014/api/tilesDirect?z={z}&x={x}&y={y}'
+    sentinel.setUrl('http://gis-bigdata:11014/api/tiles?z={z}&x={x}&y={y}&option=TCI'
       + '&resolution=' + (document.getElementById('details-availablebands-red')  .selectedOptions[0].text.split('/').reverse()[1] || 'NULL')
       + '&r='          +  document.getElementById('details-availablebands-red')  .selectedOptions[0].text.split('/').pop()
       + '&g='          +  document.getElementById('details-availablebands-green').selectedOptions[0].text.split('/').pop()
@@ -235,13 +235,13 @@ function initPanels() {
   <input type="radio" name="colormode" id="grayscale" value="grayscale" checked/><label for="grayscale">Grayscale</label>
   <input type="radio" name="colormode" id="rgb" value="rgb"/><label for="rgb">RGB</label>
   <div>
-    <strong>Band to display:</strong> <select id="details-availablebands" onchange="changeTmsUrl(event)"></select>
+    <strong>Band to display:</strong> <select id="details-availablebands" onchange="changeTmsUrl(event.target.value)"></select>
   </div>
   <div>
     <table>
-      <tr><td><strong>Red:  </strong></td><td><select id="details-availablebands-red"   onchange="changeTmsUrl(event)"></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td></tr>
-      <tr><td><strong>Green:</strong></td><td><select id="details-availablebands-green" onchange="changeTmsUrl(event)"></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td></tr>
-      <tr><td><strong>Blue: </strong></td><td><select id="details-availablebands-blue"  onchange="changeTmsUrl(event)"></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td></tr>
+      <tr><td><strong>Red:  </strong></td><td><select id="details-availablebands-red"   onchange="changeTmsUrl(event.target.value)"></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td></tr>
+      <tr><td><strong>Green:</strong></td><td><select id="details-availablebands-green" onchange="changeTmsUrl(event.target.value)"></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td></tr>
+      <tr><td><strong>Blue: </strong></td><td><select id="details-availablebands-blue"  onchange="changeTmsUrl(event.target.value)"></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td></tr>
     </table>
   </div>
 </div>
@@ -273,7 +273,6 @@ function initPanels() {
             ondblclick="showDetails(event)"
             data-footprint="${e.MTD.metadata[''].FOOTPRINT}"
             data-tmsurls="${(e.tmsUrls.R10m != undefined ? Object.values(e.tmsUrls.R10m).join(',').concat(Object.values(e.tmsUrls.R20m).join(',').concat(Object.values(e.tmsUrls.R60m).join(','))) : Object.values(e.tmsUrls).join(','))}"
-            data-tciurl="${(e.tmsUrls.R10m ? e.tmsUrls.R10m.TCI : e.tmsUrls.TCI)}"
             data-scenename="${e.sceneName}"
             data-datetime="${e.MTD.metadata[''].DATATAKE_1_DATATAKE_SENSING_START}"
             data-cloudcoverage="${e.MTD.metadata[''].CLOUD_COVERAGE_ASSESSMENT}">
