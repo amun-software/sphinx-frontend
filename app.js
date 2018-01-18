@@ -68,6 +68,12 @@ function changeTmsUrl(tmsurl = undefined) {
       + '&g='          +  document.getElementById('details-availablebands-green').selectedOptions[0].text.split('/').pop()
       + '&b='          +  document.getElementById('details-availablebands-blue') .selectedOptions[0].text.split('/').pop()
       + '&scene='      +  document.getElementById('details-identifier').innerHTML.replace('.SAFE', '').replace(/\W/g, '')
+      + '&rmin='       + (parseInt(document.getElementById('contrast-min-r').value) || 0)
+      + '&gmin='       + (parseInt(document.getElementById('contrast-min-g').value) || 0)
+      + '&bmin='       + (parseInt(document.getElementById('contrast-min-b').value) || 0)
+      + '&rmax='       + (parseInt(document.getElementById('contrast-max-r').value) || 255)
+      + '&gmax='       + (parseInt(document.getElementById('contrast-max-g').value) || 255)
+      + '&bmax='       + (parseInt(document.getElementById('contrast-max-b').value) || 255)
     );
   }
 }
@@ -239,9 +245,9 @@ function initPanels() {
   </div>
   <div>
     <table>
-      <tr><td><strong>Red:  </strong></td><td><select id="details-availablebands-red"   onchange="changeTmsUrl(event.target.value)"></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td></tr>
-      <tr><td><strong>Green:</strong></td><td><select id="details-availablebands-green" onchange="changeTmsUrl(event.target.value)"></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td></tr>
-      <tr><td><strong>Blue: </strong></td><td><select id="details-availablebands-blue"  onchange="changeTmsUrl(event.target.value)"></select></td><td><input placeholder="min"></td><td><input placeholder="max"></td></tr>
+      <tr><td><strong>Red:  </strong></td><td><select id="details-availablebands-red"   onchange="changeTmsUrl()"></select></td><td><input placeholder="min" id="contrast-min-r" onchange="changeTmsUrl()"></td><td><input placeholder="max" id="contrast-max-r" onchange="changeTmsUrl()"></td></tr>
+      <tr><td><strong>Green:</strong></td><td><select id="details-availablebands-green" onchange="changeTmsUrl()"></select></td><td><input placeholder="min" id="contrast-min-g" onchange="changeTmsUrl()"></td><td><input placeholder="max" id="contrast-max-g" onchange="changeTmsUrl()"></td></tr>
+      <tr><td><strong>Blue: </strong></td><td><select id="details-availablebands-blue"  onchange="changeTmsUrl()"></select></td><td><input placeholder="min" id="contrast-min-b" onchange="changeTmsUrl()"></td><td><input placeholder="max" id="contrast-max-b" onchange="changeTmsUrl()"></td></tr>
     </table>
   </div>
 </div>
