@@ -27,6 +27,11 @@ input[type="range"] {
   margin: 0;
 }
 
+#details input#grayscale:checked ~ div input {
+  display: inline;
+  width: 60px;
+}
+
 li {
   margin-bottom: 10px;
 }
@@ -50,9 +55,4 @@ nav {
 
 #details input#rgb:checked + label + div {
   display: none;
-}
-
-#details input#grayscale:checked ~ div input {
-  display: inline;
-  width: 60px;
 }
