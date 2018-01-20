@@ -177,6 +177,13 @@ function initMap() {
   
   // POLYGON
   polygon = new L.polygon([], {color: 'red', fill: false}).addTo(map);
+  
+  // LOADING SYMBOL
+  var loadingControl = L.Control.loading({
+      position: 'topright',
+      separate: true
+  });
+  map.addControl(loadingControl);
 }
 
 function initPanels() {
@@ -198,11 +205,11 @@ function initPanels() {
     tab: '<i class="fa fa-search fa-lg"></i>',
     pane: `
 <h3>Search</h3>
-<form>
+<form onsubmit="return false">
   <input placeholder="Identifier" id="identifier" onkeyup="filterResults()">
   <input placeholder="Start date" id="startdate" onchange="filterResults()" data-toggle="datepicker">
   <input placeholder="End date" id="enddate" onchange="filterResults()" data-toggle="datepicker">
-  <input type="submit" value="Filter">
+  <input type="submit" value="Filter" onclick="filterResults()">
 </form>
 <h3>Results (<span id="resultcount"></span>)</h3>
 <ol id='searchresults'>
