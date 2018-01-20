@@ -64,22 +64,30 @@ function showDetails(event) {
   changeTmsUrl(info.tmsurls.split(',')[0]);
 }
 
-function changeTmsUrl(tmsurl = undefined) {
-  if(tmsurl != undefined) {
-    sentinel.setUrl(tmsurl + '/{z}/{x}/{y}.png');
-  } else if(document.querySelector('input[name=colormode]:checked').value == 'grayscale') {
-    sentinel.setUrl('http://gis-bigdata:11014/api/tiles?z={z}&x={x}&y={y}&option=grayscale'
-      + '&band='  +  document.getElementById('details-availablebands').selectedOptions[0].text
-      + '&scene=' +  document.getElementById('details-identifier').innerHTML.replace('.SAFE', '').replace(/\W/g, '')
-      + '&min='   + (parseInt(document.getElementById('contrast-min').value) || 0)
-      + '&max='   + (parseInt(document.getElementById('contrast-max').value) || 255)
-    );
+function getColormode() {
+  // may be 'rgb' or 'grayscale'
+  return document.querySelector('input[name=colormode]:checked').value;
+}
+
+function changeTmsUrl() {
+  const scene = document.getElementById('details-identifier').innerHTML.replace('.SAFE', '').replace(/\W/g, '');
+  if(getColormode() == 'grayscale') {
+    const band = document.getElementById('details-availablebands').selectedOptions[0].text;
+    const min = (parseInt(document.getElementById('contrast-min').value) || 0);
+    const max = (parseInt(document.getElementById('contrast-max').value) || 255);
+    if(min==0 && max==255) {
+      // use TMS directly for default settings
+      sentinel.setUrl(`http://gis-bigdata:11016/img/${scene}.SAFE/IMG_DATA/${band}/{z}/{x}/{y}.png`);
+    } else {
+      // use processing service for special settings
+      sentinel.setUrl(`http://gis-bigdata:11014/api/tiles?z={z}&x={x}&y={y}&option=grayscale&scene=${scene}&band=${band}&min=${min}&max=${max}`);
+    }
   } else {
     sentinel.setUrl('http://gis-bigdata:11014/api/tiles?z={z}&x={x}&y={y}&option=RGB'
+      + '&scene='      +  scene
       + '&r='          +  document.getElementById('details-availablebands-red')  .selectedOptions[0].text
       + '&g='          +  document.getElementById('details-availablebands-green').selectedOptions[0].text
       + '&b='          +  document.getElementById('details-availablebands-blue') .selectedOptions[0].text
-      + '&scene='      +  document.getElementById('details-identifier').innerHTML.replace('.SAFE', '').replace(/\W/g, '')
       + '&rmin='       + (parseInt(document.getElementById('contrast-min-r').value) || 0)
       + '&gmin='       + (parseInt(document.getElementById('contrast-min-g').value) || 0)
       + '&bmin='       + (parseInt(document.getElementById('contrast-min-b').value) || 0)
@@ -254,7 +262,7 @@ function initPanels() {
   <input type="radio" name="colormode" id="grayscale" value="grayscale" checked/><label for="grayscale">Grayscale</label>
   <input type="radio" name="colormode" id="rgb" value="rgb"/><label for="rgb">RGB</label>
   <div>
-    <strong>Band to display:</strong> <select id="details-availablebands" onchange="changeTmsUrl(event.target.value)"></select>
+    <strong>Band to display:</strong> <select id="details-availablebands" onchange="changeTmsUrl()"></select>
     <input placeholder="min" id="contrast-min" onchange="changeTmsUrl()">
     <input placeholder="max" id="contrast-max" onchange="changeTmsUrl()">
   </div>
