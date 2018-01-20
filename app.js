@@ -61,18 +61,24 @@ function showDetails(event) {
     .join("\r\n");
   ['', '-red', '-green', '-blue'].forEach((postfix) => document.getElementById('details-availablebands'+postfix).innerHTML = bandselector);
   map.fitBounds(polygon.getBounds());
-  changeTmsUrl(info.tmsurls.split(',')[0] + '/{z}/{x}/{y}.png');
+  changeTmsUrl(info.tmsurls.split(',')[0]);
 }
 
 function changeTmsUrl(tmsurl = undefined) {
-  if(tmsurl != undefined && document.querySelector('input[name=colormode]:checked').value == 'grayscale') {
+  if(tmsurl != undefined) {
     sentinel.setUrl(tmsurl + '/{z}/{x}/{y}.png');
+  } else if(document.querySelector('input[name=colormode]:checked').value == 'grayscale') {
+    sentinel.setUrl('http://gis-bigdata:11014/api/tiles?z={z}&x={x}&y={y}&option=grayscale'
+      + '&band='  +  document.getElementById('details-availablebands').selectedOptions[0].text
+      + '&scene=' +  document.getElementById('details-identifier').innerHTML.replace('.SAFE', '').replace(/\W/g, '')
+      + '&min='   + (parseInt(document.getElementById('contrast-min').value) || 0)
+      + '&max='   + (parseInt(document.getElementById('contrast-max').value) || 255)
+    );
   } else {
-    sentinel.setUrl('http://gis-bigdata:11014/api/tiles?z={z}&x={x}&y={y}&option=TCI'
-      + '&resolution=' + (document.getElementById('details-availablebands-red')  .selectedOptions[0].text.split('/').reverse()[1] || 'NULL')
-      + '&r='          +  document.getElementById('details-availablebands-red')  .selectedOptions[0].text.split('/').pop()
-      + '&g='          +  document.getElementById('details-availablebands-green').selectedOptions[0].text.split('/').pop()
-      + '&b='          +  document.getElementById('details-availablebands-blue') .selectedOptions[0].text.split('/').pop()
+    sentinel.setUrl('http://gis-bigdata:11014/api/tiles?z={z}&x={x}&y={y}&option=RGB'
+      + '&r='          +  document.getElementById('details-availablebands-red')  .selectedOptions[0].text
+      + '&g='          +  document.getElementById('details-availablebands-green').selectedOptions[0].text
+      + '&b='          +  document.getElementById('details-availablebands-blue') .selectedOptions[0].text
       + '&scene='      +  document.getElementById('details-identifier').innerHTML.replace('.SAFE', '').replace(/\W/g, '')
       + '&rmin='       + (parseInt(document.getElementById('contrast-min-r').value) || 0)
       + '&gmin='       + (parseInt(document.getElementById('contrast-min-g').value) || 0)
@@ -249,6 +255,8 @@ function initPanels() {
   <input type="radio" name="colormode" id="rgb" value="rgb"/><label for="rgb">RGB</label>
   <div>
     <strong>Band to display:</strong> <select id="details-availablebands" onchange="changeTmsUrl(event.target.value)"></select>
+    <input placeholder="min" id="contrast-min" onchange="changeTmsUrl()">
+    <input placeholder="max" id="contrast-max" onchange="changeTmsUrl()">
   </div>
   <div>
     <table>

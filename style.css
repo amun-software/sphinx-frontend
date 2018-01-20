@@ -51,3 +51,8 @@ nav {
 #details input#rgb:checked + label + div {
   display: none;
 }
+
+#details input#grayscale:checked ~ div input {
+  display: inline;
+  width: 60px;
+}
