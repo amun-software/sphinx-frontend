@@ -20,17 +20,25 @@ function getPolygonCoords(footprint) {
   .map((e)=>[e[1],e[0]]);
 }
 
+function getTmsUrlsAsList(tmsUrls) {
+  const allurls = 
+    tmsUrls.R10m == undefined ?
+    Object.values(tmsUrls) :
+    Object.values(tmsUrls.R10m).concat(Object.values(tmsUrls.R20m).concat(Object.values(tmsUrls.R60m)));
+  return allurls.map((e) => e.replace(/^.*IMG_DATA\//, '')).join(',');
+}
+
 function getSearchResults() {
   $.get('http://gis-bigdata:11016/datasets', function(result) {
     document.getElementById('searchresults').innerHTML = result
     .sort((e1,e2) => e1.MTD.metadata[''].PRODUCT_START_TIME < e2.MTD.metadata[''].PRODUCT_START_TIME)
     .map((e) =>
       `<li
-        onclick="showFootprintOnMap(event)"
-        ondblclick="showDetails(event)"
+        onclick="showFootprintOnMap(JSON.parse(this.dataset.polygoncoords))"
+        ondblclick="showDetails(this.dataset)"
         data-footprint="${e.MTD.metadata[''].FOOTPRINT}"
         data-polygoncoords="${JSON.stringify(getPolygonCoords(e.MTD.metadata[''].FOOTPRINT))}"
-        data-tmsurls="${(e.tmsUrls.R10m != undefined ? Object.values(e.tmsUrls.R10m).join(',').concat(Object.values(e.tmsUrls.R20m).join(',').concat(Object.values(e.tmsUrls.R60m).join(','))) : Object.values(e.tmsUrls).join(','))}"
+        data-tmsurls="${getTmsUrlsAsList(e.tmsUrls)}"
         data-scenename="${e.sceneName}"
         data-datetime="${e.MTD.metadata[''].DATATAKE_1_DATATAKE_SENSING_START}"
         data-cloudcoverage="${e.MTD.metadata[''].CLOUD_COVERAGE_ASSESSMENT}">
@@ -40,7 +48,6 @@ function getSearchResults() {
       </li>`
     ).join('\r\n');
     totalcount = result.length;
-    document.getElementById('resultcount').innerHTML = totalcount;
     filterResults();
   });
 }
@@ -67,14 +74,12 @@ function filterResults() {
   document.getElementById('resultcount').innerHTML = totalcount - parseInt($('.invisible').length);
 }
 
-function showFootprintOnMap(event) {
-  var polygonlatlngs = JSON.parse(event.target.parentElement.dataset.polygoncoords);
+function showFootprintOnMap(polygonlatlngs) {
   polygon.setLatLngs(polygonlatlngs);
   map.panInsideBounds(polygon.getBounds());
 }
 
-function showDetails(event) {
-  const info = (event.target.tagName=='LI' ? event.target.dataset : event.target.parentElement.dataset);
+function showDetails(info) {
   sidebar.open('details');
   document.getElementById('details-identifier').innerHTML = info.scenename.replace(/_/g, '_&#8203;');
   document.getElementById('details-datetime').innerHTML = info.datetime;
@@ -83,7 +88,7 @@ function showDetails(event) {
     .split(',')
     .map((e)=>'<option value="' + e + '">' + e.replace(/^.*IMG_DATA\//, '') + '</option>')
     .join("\r\n");
-  ['', '-red', '-green', '-blue'].forEach((postfix) => document.getElementById('details-availablebands'+postfix).innerHTML = bandselector);
+  ['', '-r', '-g', '-b'].forEach((postfix) => document.getElementById('availablebands'+postfix).innerHTML = bandselector);
   map.fitBounds(polygon.getBounds());
   changeTmsUrl(info.tmsurls.split(',')[0]);
 }
@@ -96,7 +101,7 @@ function getColormode() {
 function changeTmsUrl() {
   const scene = document.getElementById('details-identifier').innerHTML.replace('.SAFE', '').replace(/\W/g, '');
   if(getColormode() == 'grayscale') {
-    const band = document.getElementById('details-availablebands').selectedOptions[0].text;
+    const band = document.getElementById('availablebands').value;
     const min = (parseInt(document.getElementById('contrast-min').value) || 0);
     const max = (parseInt(document.getElementById('contrast-max').value) || 255);
     if(min==0 && max==255) {
@@ -109,9 +114,9 @@ function changeTmsUrl() {
   } else {
     sentinel.setUrl('http://gis-bigdata:11014/api/tiles?z={z}&x={x}&y={y}&option=RGB'
       + '&scene='      +  scene
-      + '&r='          +  document.getElementById('details-availablebands-red')  .selectedOptions[0].text
-      + '&g='          +  document.getElementById('details-availablebands-green').selectedOptions[0].text
-      + '&b='          +  document.getElementById('details-availablebands-blue') .selectedOptions[0].text
+      + '&r='          +  document.getElementById('availablebands-r').value
+      + '&g='          +  document.getElementById('availablebands-g').value
+      + '&b='          +  document.getElementById('availablebands-b').value
       + '&rmin='       + (parseInt(document.getElementById('contrast-min-r').value) || 0)
       + '&gmin='       + (parseInt(document.getElementById('contrast-min-g').value) || 0)
       + '&bmin='       + (parseInt(document.getElementById('contrast-min-b').value) || 0)
@@ -122,10 +127,9 @@ function changeTmsUrl() {
   }
 }
 
-function changeOpacity(event) {
-  console.log('changed opacity');
-  sentinel.setOpacity(event.target.value / 100);
-  event.target.nextElementSibling.innerHTML = event.target.value + '&nbsp;%';
+function changeOpacity(value) {
+  sentinel.setOpacity(value / 100);
+  document.getElementById('opacity-label').innerHTML = value + '&nbsp;%';
 }
 
 function initMap() {
@@ -225,7 +229,7 @@ function initPanels() {
         <input placeholder="Identifier" id="identifier" onkeyup="filterResults()">
         <input placeholder="Start date" id="startdate" onchange="filterResults()" data-toggle="datepicker">
         <input placeholder="End date" id="enddate" onchange="filterResults()" data-toggle="datepicker">
-        <input type="submit" value="Filter" onclick="filterResults()">
+        <button id="filter" onclick="filterResults()">Filter</button>
       </form>
       <h3>Results (<span id="resultcount"></span>)</h3>
       <ol id='searchresults'>
@@ -276,8 +280,8 @@ function initPanels() {
       
       <div>
         <strong>Opacity:</strong>
-        <input type="range" min="0" max="100" step="1" value="100" id="details-opacity" onchange="changeOpacity(event)" />
-        <span>100&nbsp;%</span>
+        <input type="range" min="0" max="100" step="1" value="100" id="opacity" onchange="changeOpacity(this.value)" />
+        <label id="opacity-label" for="opacity">100&nbsp;%</label>
       </div>
       
       <div>
@@ -285,15 +289,15 @@ function initPanels() {
         <input type="radio" name="colormode" id="grayscale" value="grayscale" checked/><label for="grayscale">Grayscale</label>
         <input type="radio" name="colormode" id="rgb" value="rgb"/><label for="rgb">RGB</label>
         <div>
-          <strong>Band to display:</strong> <select id="details-availablebands" onchange="changeTmsUrl()"></select>
+          <strong>Band to display:</strong> <select id="availablebands" onchange="changeTmsUrl()"></select>
           <input placeholder="min" id="contrast-min" onchange="changeTmsUrl()">
           <input placeholder="max" id="contrast-max" onchange="changeTmsUrl()">
         </div>
         <div>
           <table>
-            <tr><td><strong>Red:  </strong></td><td><select id="details-availablebands-red"   onchange="changeTmsUrl()"></select></td><td><input placeholder="min" id="contrast-min-r" onchange="changeTmsUrl()"></td><td><input placeholder="max" id="contrast-max-r" onchange="changeTmsUrl()"></td></tr>
-            <tr><td><strong>Green:</strong></td><td><select id="details-availablebands-green" onchange="changeTmsUrl()"></select></td><td><input placeholder="min" id="contrast-min-g" onchange="changeTmsUrl()"></td><td><input placeholder="max" id="contrast-max-g" onchange="changeTmsUrl()"></td></tr>
-            <tr><td><strong>Blue: </strong></td><td><select id="details-availablebands-blue"  onchange="changeTmsUrl()"></select></td><td><input placeholder="min" id="contrast-min-b" onchange="changeTmsUrl()"></td><td><input placeholder="max" id="contrast-max-b" onchange="changeTmsUrl()"></td></tr>
+            <tr><td><strong>Red:  </strong></td><td><select id="availablebands-r" onchange="changeTmsUrl()"></select></td><td><input placeholder="min" id="contrast-min-r" onchange="changeTmsUrl()"></td><td><input placeholder="max" id="contrast-max-r" onchange="changeTmsUrl()"></td></tr>
+            <tr><td><strong>Green:</strong></td><td><select id="availablebands-g" onchange="changeTmsUrl()"></select></td><td><input placeholder="min" id="contrast-min-g" onchange="changeTmsUrl()"></td><td><input placeholder="max" id="contrast-max-g" onchange="changeTmsUrl()"></td></tr>
+            <tr><td><strong>Blue: </strong></td><td><select id="availablebands-b" onchange="changeTmsUrl()"></select></td><td><input placeholder="min" id="contrast-min-b" onchange="changeTmsUrl()"></td><td><input placeholder="max" id="contrast-max-b" onchange="changeTmsUrl()"></td></tr>
           </table>
         </div>
       </div>`

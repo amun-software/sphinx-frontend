@@ -8,7 +8,7 @@ body {
   height: 100vh;
 }
 
-input {
+input, button#filter {
   display: block;
   width: 90%;
   padding: 3px;
