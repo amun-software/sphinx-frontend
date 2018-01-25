@@ -3,10 +3,13 @@ var drawControl;
 var sentinel;
 var polygon;
 var totalcount;
+var panelid;
+var currentscene;
 
 $(document).ready(function() {
   initMap();
   initPanels();
+  initFromPermalink();
 });
 
 function getPolygonCoords(footprint) {
@@ -72,15 +75,18 @@ function filterResults() {
       e.classList.remove('invisible');
   });
   document.getElementById('resultcount').innerHTML = totalcount - parseInt($('.invisible').length);
+  updatePermalink();
 }
 
 function showFootprintOnMap(polygonlatlngs) {
   polygon.setLatLngs(polygonlatlngs);
   map.panInsideBounds(polygon.getBounds());
+  updatePermalink();
 }
 
 function showDetails(info) {
   sidebar.open('details');
+  currentscene = info.scenename;
   document.getElementById('details-identifier').innerHTML = info.scenename.replace(/_/g, '_&#8203;');
   document.getElementById('details-datetime').innerHTML = info.datetime;
   document.getElementById('details-cloudcoverage').innerHTML = info.cloudcoverage;
@@ -88,9 +94,15 @@ function showDetails(info) {
     .split(',')
     .map((e)=>'<option value="' + e + '">' + e.replace(/^.*IMG_DATA\//, '') + '</option>')
     .join("\r\n");
-  ['', '-r', '-g', '-b'].forEach((postfix) => document.getElementById('availablebands'+postfix).innerHTML = bandselector);
+  ['', '-r', '-g', '-b'].forEach((postfix, i) => {
+    const select = document.getElementById('availablebands'+postfix);
+    select.innerHTML = bandselector;
+    select.value = getParamFromPermalink(select.id) || ((bandselector.indexOf('R60m')!=-1 ? 'R60m/' : '') + ['B01','B04','B03','B02'][i]);
+  });
+  
   map.fitBounds(polygon.getBounds());
   changeTmsUrl(info.tmsurls.split(',')[0]);
+  updatePermalink();
 }
 
 function getColormode() {
@@ -99,21 +111,20 @@ function getColormode() {
 }
 
 function changeTmsUrl() {
-  const scene = document.getElementById('details-identifier').innerHTML.replace('.SAFE', '').replace(/\W/g, '');
   if(getColormode() == 'grayscale') {
     const band = document.getElementById('availablebands').value;
     const min = (parseInt(document.getElementById('contrast-min').value) || 0);
     const max = (parseInt(document.getElementById('contrast-max').value) || 255);
     if(min==0 && max==255) {
       // use TMS directly for default settings
-      sentinel.setUrl(`http://gis-bigdata:11016/img/${scene}.SAFE/IMG_DATA/${band}/{z}/{x}/{y}.png`);
+      sentinel.setUrl(`http://gis-bigdata:11016/img/${currentscene}/IMG_DATA/${band}/{z}/{x}/{y}.png`);
     } else {
       // use processing service for special settings
-      sentinel.setUrl(`http://gis-bigdata:11014/api/tiles?z={z}&x={x}&y={y}&option=grayscale&scene=${scene}&band=${band}&min=${min}&max=${max}`);
+      sentinel.setUrl(`http://gis-bigdata:11014/api/tiles?z={z}&x={x}&y={y}&option=grayscale&scene=${currentscene}&band=${band}&min=${min}&max=${max}`);
     }
   } else {
     sentinel.setUrl('http://gis-bigdata:11014/api/tiles?z={z}&x={x}&y={y}&option=RGB'
-      + '&scene='      +  scene
+      + '&scene='      +  currentscene
       + '&r='          +  document.getElementById('availablebands-r').value
       + '&g='          +  document.getElementById('availablebands-g').value
       + '&b='          +  document.getElementById('availablebands-b').value
@@ -125,11 +136,13 @@ function changeTmsUrl() {
       + '&bmax='       + (parseInt(document.getElementById('contrast-max-b').value) || 255)
     );
   }
+  updatePermalink();
 }
 
 function changeOpacity(value) {
   sentinel.setOpacity(value / 100);
   document.getElementById('opacity-label').innerHTML = value + '&nbsp;%';
+  updatePermalink();
 }
 
 function initMap() {
@@ -204,6 +217,10 @@ function initMap() {
     separate: true
   });
   map.addControl(loadingControl);
+  
+  // PERMALINKS
+  map.on('zoomend', updatePermalink);
+  map.on('moveend', updatePermalink);
 }
 
 function initPanels() {
@@ -233,11 +250,6 @@ function initPanels() {
       </form>
       <h3>Results (<span id="resultcount"></span>)</h3>
       <ol id='searchresults'>
-        <li><strong>S2A_MSIL2A N0205_R108_T32UMC</strong><br>2017-09-27 10:30:21</li>
-        <li><strong>S2A_MSIL2A N0205_R109_T32UMC</strong><br>2017-09-27 10:35:18</li>
-        <li><strong>S2A_MSIL2A N0205_R110_T32UMC</strong><br>2017-09-27 10:40:27</li>
-        <li><strong>S2A_MSIL2A N0205_R111_T32UMC</strong><br>2017-09-27 10:45:22</li>
-        <li><strong>S2A_MSIL2A N0205_R112_T32UMC</strong><br>2017-09-27 10:50:13</li>
       </ol>
       <nav>
         <button>&lt;</button>
@@ -286,8 +298,8 @@ function initPanels() {
       
       <div>
         <strong>Color mode:</strong>
-        <input type="radio" name="colormode" id="grayscale" value="grayscale" checked/><label for="grayscale">Grayscale</label>
-        <input type="radio" name="colormode" id="rgb" value="rgb"/><label for="rgb">RGB</label>
+        <input type="radio" name="colormode" id="grayscale" value="grayscale" checked onchange="updatePermalink()"/><label for="grayscale">Grayscale</label>
+        <input type="radio" name="colormode" id="rgb" value="rgb" onchange="updatePermalink()"/><label for="rgb">RGB</label>
         <div>
           <strong>Band to display:</strong> <select id="availablebands" onchange="changeTmsUrl()"></select>
           <input placeholder="min" id="contrast-min" onchange="changeTmsUrl()">
@@ -315,14 +327,111 @@ function initPanels() {
   });
   
   // SHOWING/HIDING stuff when appropriate
-  sidebar.on('content', function(e) {
-    if(e.id=='search') {
-      getSearchResults();
+  sidebar.on('content', function(panel) {
+    if(panel.id == 'search') {
       map.addControl(drawControl);
+      if(document.getElementById('searchresults').children.length == 0) {
+        getSearchResults();
+      }
     } else {
       map.removeControl(drawControl);
     }
   });
   
-  sidebar.open('home');
+  // KEEP PERMALINK in urlbar updated
+  sidebar.on('content', function(panel) {
+    panelid = panel.id;
+    updatePermalink();
+  });
+}
+
+function getSearchAndVisualisationState() {
+  return Array.from(document.querySelectorAll('input:not(.leaflet-control-layers-selector)'))
+    .concat(Array.from(document.getElementsByTagName('select')))
+    .map((e) => e.id + '=' + (e.type=='radio' ? e.checked : e.value))
+    .join('&')
+    +`&mapstate=${map.getCenter().lat},${map.getCenter().lng}@${map.getZoom()}`;
+}
+
+function updatePermalink() {
+  var newhash;
+  
+  switch(panelid) {
+    case 'home':
+    case 'imprint':
+      newhash = panelid;
+      break;
+    case 'search':
+      newhash = panelid + '?' + getSearchAndVisualisationState();
+      break;
+    case 'details':
+      newhash = panelid + '/' + currentscene + '?' + getSearchAndVisualisationState();
+      break;
+    default:
+      return;
+      break;                      
+  }
+  
+  window.location.hash = newhash;
+  console.log(newhash);
+}
+
+function getParamFromPermalink(param) {
+  window.location.hash.match(new RegExp(param+'=([^&]*)'))[1];
+}
+
+function initFromPermalink() {
+  if(window.location.hash == '' || window.location.hash == '#home') {
+    sidebar.open('home');
+    return;
+  }
+  
+  if(window.location.hash == '#imprint') {
+    sidebar.open('imprint');
+    return;
+  }
+  
+  if(window.location.hash.substr(0,9) == '#details/') {
+    const scene = window.location.hash.substr(9,65);
+    $.get('http://gis-bigdata:11016/datasets?identifiers='+scene, function(result) {
+      const info = {
+        scenename: result[0].sceneName,
+        datetime: result[0].MTD.metadata[''].DATATAKE_1_DATATAKE_SENSING_START,
+        cloudcoverage: result[0].MTD.metadata[''].CLOUD_COVERAGE_ASSESSMENT,
+        tmsurls: getTmsUrlsAsList(result[0].tmsUrls)
+      };
+      polygon.setLatLngs(getPolygonCoords(result[0].MTD.metadata[''].FOOTPRINT)); 
+      showDetails(info);
+    });
+  }
+  
+  if(window.location.hash.indexOf('?') != -1) {
+    window.location.hash
+      .substr(window.location.hash.indexOf('?')+1)
+      .split('&')
+      .map((keyvalue) => keyvalue.split('='))
+      .forEach((keyvalue) => {
+        if(keyvalue[0] == 'mapstate') {
+          const coordszoom = keyvalue[1].split('@');
+          map.setView(coordszoom[0].split(','), coordszoom[1]);
+        } else {
+          const element = document.getElementById(keyvalue[0]);
+          if(keyvalue[1] == 'true') {
+            element.checked = true;
+          } else if(keyvalue[1] == 'false') {
+            element.checked = false;
+          } else {
+            element.value = keyvalue[1];
+            if(keyvalue[0] == 'opacity') {
+              changeOpacity(keyvalue[1]);
+            }
+          }
+        }
+      })
+    ;
+  }
+  
+  if(window.location.hash.substr(0,7) == '#search') {
+    sidebar.open('search');
+  }
 }
