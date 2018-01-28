@@ -6,6 +6,11 @@ var totalcount;
 var panelid;
 var currentscene;
 
+// const DISCOVERYENDPOINT = 'http://gis-bigdata:11016';
+const DISCOVERYENDPOINT = 'http://10.66.1.238:3000';
+// const PROCESSINGENDPOINT = 'http://gis-bigdata:11014';
+const PROCESSINGENDPOINT = 'http://10.66.1.238:8080';
+
 $(document).ready(function() {
   initMap();
   initPanels();
@@ -32,7 +37,7 @@ function getTmsUrlsAsList(tmsUrls) {
 }
 
 function getSearchResults() {
-  $.get('http://gis-bigdata:11016/datasets', function(result) {
+  $.get(DISCOVERYENDPOINT+'/datasets', function(result) {
     document.getElementById('searchresults').innerHTML = result
     .sort((e1,e2) => e1.MTD.metadata[''].PRODUCT_START_TIME < e2.MTD.metadata[''].PRODUCT_START_TIME)
     .map((e) =>
@@ -85,7 +90,7 @@ function showFootprintOnMap(polygonlatlngs) {
 }
 
 function showDetails(scenename) {
-  $.get('http://gis-bigdata:11016/datasets?identifiers='+scenename, function(result) {
+  $.get(DISCOVERYENDPOINT+'/datasets?identifiers='+scenename, function(result) {
     currentscene = scenename;
     const info = result[0];
     
@@ -125,13 +130,13 @@ function changeTmsUrl() {
     const max = (parseInt(document.getElementById('contrast-max').value) || 255);
     if(min==0 && max==255) {
       // use TMS directly for default settings
-      sentinel.setUrl(`http://gis-bigdata:11016/img/${currentscene}/IMG_DATA/${band}/{z}/{x}/{y}.png`);
+      sentinel.setUrl(DISCOVERYENDPOINT+`/img/${currentscene}/IMG_DATA/${band}/{z}/{x}/{y}.png`);
     } else {
       // use processing service for special settings
-      sentinel.setUrl(`http://gis-bigdata:11014/api/tiles?z={z}&x={x}&y={y}&option=grayscale&scene=${currentscene}&band=${band}&min=${min}&max=${max}`);
+      sentinel.setUrl(PROCESSINGENDPOINT+`/api/tiles?z={z}&x={x}&y={y}&option=grayscale&scene=${currentscene}&band=${band}&min=${min}&max=${max}`);
     }
   } else {
-    sentinel.setUrl('http://gis-bigdata:11014/api/tiles?z={z}&x={x}&y={y}&option=RGB'
+    sentinel.setUrl(PROCESSINGENDPOINT+'/api/tiles?z={z}&x={x}&y={y}&option=RGB'
       + '&scene='      +  currentscene
       + '&r='          +  document.getElementById('availablebands-r').value
       + '&g='          +  document.getElementById('availablebands-g').value
