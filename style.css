@@ -41,7 +41,7 @@ nav {
   justify-content: space-between;
 }
 
-.invisible {
+.filtered, .paged {
   display: none;
 }
 

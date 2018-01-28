@@ -2,9 +2,15 @@ var editableLayers;
 var drawControl;
 var sentinel;
 var polygon;
-var totalcount;
+
 var panelid;
 var currentscene;
+
+var totalcount;
+var foundcount;
+var itemsperpage = 10;
+var page = 0;
+var numberofpages;
 
 // const DISCOVERYENDPOINT = 'http://gis-bigdata:11016';
 const DISCOVERYENDPOINT = 'http://10.66.1.238:3000';
@@ -67,6 +73,7 @@ function filterResults() {
   var enddate = document.getElementById('enddate').value.toLowerCase();
   var bbox = (editableLayers.getLayers().length > 0 ? editableLayers.getLayers()[0].getBounds() : undefined);
   Array.from(document.getElementById('searchresults').children).forEach(function(e) {
+    e.classList.remove('filtered');
     if(
       identifiersubstrings
         .map((substring) => e.dataset.scenename.toLowerCase().indexOf(substring) < 0)
@@ -74,13 +81,42 @@ function filterResults() {
       startdate != '' && e.dataset.datetime < startdate ||
       enddate   != '' && e.dataset.datetime > enddate ||
       bbox != undefined && bbox.intersects(JSON.parse(e.dataset.polygoncoords)) == false
-    )
-      e.classList.add('invisible');
-    else
-      e.classList.remove('invisible');
+    ) {
+      e.classList.add('filtered');
+    }
   });
-  document.getElementById('resultcount').innerHTML = totalcount - parseInt($('.invisible').length);
+  
+  foundcount = totalcount - parseInt($('.filtered').length);
+  document.getElementById('resultcount').innerHTML = foundcount;
+  
+  numberofpages = Math.ceil(foundcount/itemsperpage);
+  if(page > numberofpages) page = numberofpages-1;  // page is zero-indexed
+  pageResults();
+  
   updatePermalink();
+}
+
+function pageResults() {
+  var counter = 0;
+  Array.from(document.getElementById('searchresults').children).forEach(function(e) {
+    e.classList.remove('paged');
+    if(! e.classList.contains('filtered')) {
+      counter++;
+      if(counter <= page*itemsperpage || counter > page*itemsperpage + itemsperpage) {
+        e.classList.add('paged');
+      }
+    }
+  });
+  
+  document.getElementById('searchresults').start = page*itemsperpage + 1;
+  document.getElementById('resultnav-pages').innerHTML = Array.from(Array(numberofpages), (e,i) =>
+    '<button' + (page==i ? ' disabled' : '') + ' onclick="page=parseInt(this.innerHTML)-1; filterResults();">'+(i+1)+'</button>'
+  ).join("\n");
+  document.getElementById('resultnav-backwards').disabled = (page == 0);
+  document.getElementById('resultnav-forwards').disabled = (page == Math.floor(foundcount/itemsperpage));
+  
+  // paging info not yet included in permalink
+  //updatePermalink();
 }
 
 function showFootprintOnMap(polygonlatlngs) {
@@ -264,14 +300,11 @@ function initPanels() {
       <h3>Results (<span id="resultcount"></span>)</h3>
       <ol id='searchresults'>
       </ol>
-      <nav>
-        <button>&lt;</button>
-        <div>
-          <button>1</button>
-          <button>2</button>
-          <button>3</button>
+      <nav id="resultnav">
+        <button id="resultnav-backwards" onclick="if(page != 0) { page--; pageResults(); }">&lt;</button>
+        <div id="resultnav-pages">
         </div>
-        <button>&gt;</button>
+        <button id="resultnav-forwards" onclick="if(page != Math.floor(foundcount/itemsperpage)) { page++; pageResults(); }">&gt;</button>
       </nav>`
   });
   
