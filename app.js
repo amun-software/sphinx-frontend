@@ -1,5 +1,6 @@
 var editableLayers;
 var drawControl;
+var originalValue;
 var sentinel;
 var polygon;
 
@@ -253,8 +254,13 @@ function initMap() {
   });
   
   // ORIGINAL VALUE
+  originalValue = new L.marker([100, 200]).addTo(map);
   map.on('click', function(e) {
-    L.marker(e.latlng).bindPopup('Original value:<br>42.1337').addTo(map).openPopup();
+    originalValue.setLatLng(e.latlng).bindPopup('Original value:<br>Loading...').openPopup();
+    $.get(DISCOVERYENDPOINT+`/pixelValue?identifier=${currentscene}&band=TCI&lat=${e.latlng.lat}&long=${e.latlng.lng}`, function(result) {
+      result = JSON.parse(result);
+      originalValue.bindPopup('Original value:<br>' + (result.Report.BandReport.Value || result.Report.BandReport.map((e)=>`Band ${e.band}: ${e.Value}`).join('<br>')));
+    });
   });
   
   // POLYGON
