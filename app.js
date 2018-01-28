@@ -38,7 +38,7 @@ function getSearchResults() {
     .map((e) =>
       `<li
         onclick="showFootprintOnMap(JSON.parse(this.dataset.polygoncoords))"
-        ondblclick="showDetails(this.dataset)"
+        ondblclick="showDetails(this.dataset.scenename)"
         data-footprint="${e.MTD.metadata[''].FOOTPRINT}"
         data-polygoncoords="${JSON.stringify(getPolygonCoords(e.MTD.metadata[''].FOOTPRINT))}"
         data-tmsurls="${getTmsUrlsAsList(e.tmsUrls)}"
@@ -84,25 +84,33 @@ function showFootprintOnMap(polygonlatlngs) {
   updatePermalink();
 }
 
-function showDetails(info) {
-  sidebar.open('details');
-  currentscene = info.scenename;
-  document.getElementById('details-identifier').innerHTML = info.scenename.replace(/_/g, '_&#8203;');
-  document.getElementById('details-datetime').innerHTML = info.datetime;
-  document.getElementById('details-cloudcoverage').innerHTML = info.cloudcoverage;
-  var bandselector = info.tmsurls
-    .split(',')
-    .map((e)=>'<option value="' + e + '">' + e.replace(/^.*IMG_DATA\//, '') + '</option>')
-    .join("\r\n");
-  ['', '-r', '-g', '-b'].forEach((postfix, i) => {
-    const select = document.getElementById('availablebands'+postfix);
-    select.innerHTML = bandselector;
-    select.value = getParamFromPermalink(select.id) || ((bandselector.indexOf('R60m')!=-1 ? 'R60m/' : '') + ['B01','B04','B03','B02'][i]);
+function showDetails(scenename) {
+  $.get('http://gis-bigdata:11016/datasets?identifiers='+scenename, function(result) {
+    currentscene = scenename;
+    const info = result[0];
+    
+    polygon.setLatLngs(getPolygonCoords(info.MTD.metadata[''].FOOTPRINT));
+    map.fitBounds(polygon.getBounds()); 
+    
+    sidebar.open('details');
+    const datetime = info.MTD.metadata[''].DATATAKE_1_DATATAKE_SENSING_START;
+    const cloudcoverage = info.MTD.metadata[''].CLOUD_COVERAGE_ASSESSMENT;
+    document.getElementById('details-identifier').innerHTML = scenename;
+    document.getElementById('details-datetime').innerHTML = datetime;
+    document.getElementById('details-cloudcoverage').innerHTML = cloudcoverage;
+    
+    const tmsurls = getTmsUrlsAsList(info.tmsUrls);
+    const bandselector = tmsurls
+      .split(',')
+      .map((e)=>'<option value="' + e + '">' + e.replace(/^.*IMG_DATA\//, '') + '</option>')
+      .join("\r\n");
+    ['', '-r', '-g', '-b'].forEach((postfix, i) => {
+      const select = document.getElementById('availablebands'+postfix);
+      select.innerHTML = bandselector;
+      select.value = getParamFromPermalink(select.id) || ((bandselector.indexOf('R60m')!=-1 ? 'R60m/' : '') + ['B01','B04','B03','B02'][i]);
+    });
+    changeTmsUrl(); // -> updates the permalink in the end
   });
-  
-  map.fitBounds(polygon.getBounds());
-  changeTmsUrl(info.tmsurls.split(',')[0]);
-  updatePermalink();
 }
 
 function getColormode() {
@@ -280,7 +288,7 @@ function initPanels() {
     pane: `
       <h3>Details</h3>
       
-      <div>
+      <div id="details-identifier-container">
         <strong>Identifier:</strong> <em id="details-identifier"></em>
       </div>
       
@@ -392,17 +400,7 @@ function initFromPermalink() {
   }
   
   if(window.location.hash.substr(0,9) == '#details/') {
-    const scene = window.location.hash.substr(9,65);
-    $.get('http://gis-bigdata:11016/datasets?identifiers='+scene, function(result) {
-      const info = {
-        scenename: result[0].sceneName,
-        datetime: result[0].MTD.metadata[''].DATATAKE_1_DATATAKE_SENSING_START,
-        cloudcoverage: result[0].MTD.metadata[''].CLOUD_COVERAGE_ASSESSMENT,
-        tmsurls: getTmsUrlsAsList(result[0].tmsUrls)
-      };
-      polygon.setLatLngs(getPolygonCoords(result[0].MTD.metadata[''].FOOTPRINT)); 
-      showDetails(info);
-    });
+    showDetails(window.location.hash.substr(9,65));
   }
   
   if(window.location.hash.indexOf('?') != -1) {

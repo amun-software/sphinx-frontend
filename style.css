@@ -56,3 +56,7 @@ nav {
 #details input#rgb:checked + label + div {
   display: none;
 }
+
+#details #details-identifier-container {
+  word-break: break-all;
+}
