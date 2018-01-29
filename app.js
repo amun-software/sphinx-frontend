@@ -165,7 +165,7 @@ function showDetails(scenename) {
 }
 
 function getColormode() {
-  // may be 'rgb' or 'grayscale'
+  // may be 'grayscale' or 'rgb' or 'ndvi'
   return document.querySelector('input[name=colormode]:checked').value;
 }
 
@@ -182,7 +182,8 @@ function changeTmsUrl() {
       sentinel.setUrl(PROCESSINGENDPOINT+`/api/tiles?z={z}&x={x}&y={y}&option=grayscale&scene=${currentscene}&band=${band}&min=${min}&max=${max}`);
     }
   } else {
-    sentinel.setUrl(PROCESSINGENDPOINT+'/api/tiles?z={z}&x={x}&y={y}&option=RGB'
+    sentinel.setUrl(PROCESSINGENDPOINT+'/api/tiles?z={z}&x={x}&y={y}'
+      + '&option='     +  getColormode().toUpperCase()
       + '&scene='      +  currentscene.replace('.SAFE', '')
       + '&r='          +  document.getElementById('availablebands-r').value
       + '&g='          +  document.getElementById('availablebands-g').value
@@ -386,6 +387,7 @@ function initPanels() {
         <strong>Color mode:</strong>
         <input type="radio" name="colormode" id="grayscale" value="grayscale" checked onchange="changeTmsUrl()"/><label for="grayscale">Grayscale</label>
         <input type="radio" name="colormode" id="rgb" value="rgb" onchange="changeTmsUrl()"/><label for="rgb">RGB</label>
+        <input type="radio" name="colormode" id="ndvi" value="ndvi" onchange="changeTmsUrl()"/><label for="ndvi">NDVI</label>
         <div>
           <strong>Band to display:</strong> <select id="availablebands" onchange="changeTmsUrl()"></select>
           <input placeholder="min" id="contrast-min" onchange="changeTmsUrl()">

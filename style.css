@@ -49,11 +49,15 @@ nav {
   margin: 16px 0;
 }
 
-#details input#grayscale:checked + label + input + label + div + div {
+#details input#grayscale:checked + label + input + label + input + label + div + div {
   display: none;
 }
 
-#details input#rgb:checked + label + div {
+#details input#rgb:checked + label + input + label + div {
+  display: none;
+}
+
+#details input#ndvi:checked + label ~ div {
   display: none;
 }
 
