@@ -266,9 +266,28 @@ function initMap() {
   originalValue = new L.marker([100, 200]).addTo(map);
   map.on('click', function(e) {
     originalValue.setLatLng(e.latlng).bindPopup('Original value:<br>Loading...').openPopup();
-    $.get(DISCOVERYENDPOINT+`/pixelValue?identifier=${currentscene}&band=TCI&lat=${e.latlng.lat}&long=${e.latlng.lng}`, function(result) {
-      result = JSON.parse(result);
-      originalValue.bindPopup('Original value:<br>' + (result.Report.Alert || result.Report.BandReport.Value || result.Report.BandReport.map((e)=>`Band ${e.band}: ${e.Value}`).join('<br>')));
+    
+    var bandstoquery = Array.from(document.getElementsByTagName('select'))
+      .filter((e) => (getColormode() == 'grayscale' ? e.id.indexOf('-') == -1 : e.id.indexOf('-') != -1))
+      .map((e) => ({
+        displayname: e.value,
+        asqueryparam: 'band=' + (e.value.indexOf('/') == -1 ? e.value : e.value.split('/')[1] + '&resolution=' + e.value.split('/')[0].substr(1)),
+        result: undefined
+      }))
+    ;
+    
+    bandstoquery.forEach((band, i) => {
+      $.get(DISCOVERYENDPOINT+`/pixelValue?identifier=${currentscene}&lat=${e.latlng.lat}&long=${e.latlng.lng}&${band.asqueryparam}`, function(result) {
+        bandstoquery[i].result = JSON.parse(result);
+        
+        // synchronized part
+        if(bandstoquery.every((e) => e.result != undefined)) {
+          originalValue.bindPopup('Original value:<br>' + bandstoquery
+            .map((band) => band.displayname + ': ' + (band.result.Report.Alert || band.result.Report.BandReport.Value || band.result.Report.BandReport.map((e)=>`Band ${e.band}: ${e.Value}`).join('<br>')))
+            .join("<br>")
+          );
+        }
+      });
     });
   });
   
