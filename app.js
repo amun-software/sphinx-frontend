@@ -13,6 +13,8 @@ var itemsperpage = 10;
 var page = 0;
 var numberofpages;
 
+var permalinkactive = false;
+
 // const DISCOVERYENDPOINT = 'http://gis-bigdata:11016';
 const DISCOVERYENDPOINT = 'http://10.66.1.238:3000';
 // const PROCESSINGENDPOINT = 'http://gis-bigdata:11014';
@@ -149,9 +151,16 @@ function showDetails(scenename) {
     ['', '-r', '-g', '-b'].forEach((postfix, i) => {
       const select = document.getElementById('availablebands'+postfix);
       select.innerHTML = bandselector;
-      select.value = getParamFromPermalink(select.id) || ((bandselector.indexOf('R60m')!=-1 ? 'R60m/' : '') + ['B01','B04','B03','B02'][i]);
+      const defaultvalue = (bandselector.indexOf('R60m')!=-1 ? 'R60m/' : '') + ['B01','B04','B03','B02'][i];
+      const permalinkvalue = getParamFromPermalink(select.id);
+      if(Array.from(select.options).some((e)=>e.value==permalinkvalue)) {
+        select.value = permalinkvalue;
+      } else {
+        select.value = defaultvalue;
+      }
     });
     changeTmsUrl(); // -> updates the permalink in the end
+    permalinkactive = true;
   });
 }
 
@@ -174,7 +183,7 @@ function changeTmsUrl() {
     }
   } else {
     sentinel.setUrl(PROCESSINGENDPOINT+'/api/tiles?z={z}&x={x}&y={y}&option=RGB'
-      + '&scene='      +  currentscene
+      + '&scene='      +  currentscene.replace('.SAFE', '')
       + '&r='          +  document.getElementById('availablebands-r').value
       + '&g='          +  document.getElementById('availablebands-g').value
       + '&b='          +  document.getElementById('availablebands-b').value
@@ -259,7 +268,7 @@ function initMap() {
     originalValue.setLatLng(e.latlng).bindPopup('Original value:<br>Loading...').openPopup();
     $.get(DISCOVERYENDPOINT+`/pixelValue?identifier=${currentscene}&band=TCI&lat=${e.latlng.lat}&long=${e.latlng.lng}`, function(result) {
       result = JSON.parse(result);
-      originalValue.bindPopup('Original value:<br>' + (result.Report.BandReport.Value || result.Report.BandReport.map((e)=>`Band ${e.band}: ${e.Value}`).join('<br>')));
+      originalValue.bindPopup('Original value:<br>' + (result.Report.Alert || result.Report.BandReport.Value || result.Report.BandReport.map((e)=>`Band ${e.band}: ${e.Value}`).join('<br>')));
     });
   });
   
@@ -350,8 +359,8 @@ function initPanels() {
       
       <div>
         <strong>Color mode:</strong>
-        <input type="radio" name="colormode" id="grayscale" value="grayscale" checked onchange="updatePermalink()"/><label for="grayscale">Grayscale</label>
-        <input type="radio" name="colormode" id="rgb" value="rgb" onchange="updatePermalink()"/><label for="rgb">RGB</label>
+        <input type="radio" name="colormode" id="grayscale" value="grayscale" checked onchange="changeTmsUrl()"/><label for="grayscale">Grayscale</label>
+        <input type="radio" name="colormode" id="rgb" value="rgb" onchange="changeTmsUrl()"/><label for="rgb">RGB</label>
         <div>
           <strong>Band to display:</strong> <select id="availablebands" onchange="changeTmsUrl()"></select>
           <input placeholder="min" id="contrast-min" onchange="changeTmsUrl()">
@@ -406,30 +415,32 @@ function getSearchAndVisualisationState() {
 }
 
 function updatePermalink() {
-  var newhash;
-  
-  switch(panelid) {
-    case 'home':
-    case 'imprint':
-      newhash = panelid;
-      break;
-    case 'search':
-      newhash = panelid + '?' + getSearchAndVisualisationState();
-      break;
-    case 'details':
-      newhash = panelid + '/' + currentscene + '?' + getSearchAndVisualisationState();
-      break;
-    default:
-      return;
-      break;                      
+  if(permalinkactive) {
+    var newhash;
+    
+    switch(panelid) {
+      case 'home':
+      case 'imprint':
+        newhash = panelid;
+        break;
+      case 'search':
+        newhash = panelid + '?' + getSearchAndVisualisationState();
+        break;
+      case 'details':
+        newhash = panelid + '/' + currentscene + '?' + getSearchAndVisualisationState();
+        break;
+      default:
+        return;
+        break;                      
+    }
+    
+    window.location.hash = newhash;
+    console.log(newhash);
   }
-  
-  window.location.hash = newhash;
-  console.log(newhash);
 }
 
 function getParamFromPermalink(param) {
-  window.location.hash.match(new RegExp(param+'=([^&]*)'))[1];
+  return window.location.hash.match(new RegExp(param+'=([^&]*)'))[1];
 }
 
 function initFromPermalink() {

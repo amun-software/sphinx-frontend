@@ -60,3 +60,7 @@ nav {
 #details #details-identifier-container {
   word-break: break-all;
 }
+
+#searchresults li {
+  cursor: pointer;
+}
