@@ -1,0 +1,24 @@
+{
+  "name": "sphinx-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for the Amun Sphinx software package",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon ./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amun-software/sphinx-frontend.git"
+  },
+  "author": "Christoph Friedrich",
+  "license": "MIT",
+  "homepage": "https://github.com/amun-software/sphinx-frontend",
+  "dependencies": {
+    "compression": "^1.7.1",
+    "cors": "^2.8.4",
+    "express": "^4.16.2",
+    "nodemon": "^1.12.1"
+  },
+  "devDependencies": {
+  }
+}
