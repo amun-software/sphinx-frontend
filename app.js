@@ -142,6 +142,7 @@ function showDetails(scenename) {
     document.getElementById('details-identifier').innerHTML = scenename;
     document.getElementById('details-datetime').innerHTML = datetime;
     document.getElementById('details-cloudcoverage').innerHTML = cloudcoverage;
+    document.getElementById('details-allmetadata').innerHTML = Object.keys(info.MTD.metadata['']).map((e) => `<strong>${e}</strong>: ${info.MTD.metadata[''][e]}`).join('<br>');
     
     const tmsurls = getTmsUrlsAsList(info.tmsUrls);
     const bandselector = tmsurls
@@ -368,6 +369,12 @@ function initPanels() {
         <strong>Captured:</strong> <span id="details-datetime"></span><br>
         <strong>Cloud Coverage:</strong> <span id="details-cloudcoverage"></span>&nbsp;%<br>
         <!--<strong>UTM Zone:</strong><br>-->
+      </div>
+      
+      <div>
+        <strong>All metadata:</strong>
+        <input type="checkbox" id="showallmetadata"><label for="showallmetadata">Show</label>
+        <div id="details-allmetadata"></div>
       </div>
       
       <div>

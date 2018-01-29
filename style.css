@@ -61,6 +61,18 @@ nav {
   word-break: break-all;
 }
 
+#details #details-allmetadata {
+  font-size: 10pt;
+  background-color: #e7e7e7;
+  padding: 10px;
+  border-radius: 10px;
+  line-height: 16pt;
+}
+
+#details input#showallmetadata:not(:checked) ~ #details-allmetadata {
+  display: none;
+}
+
 #searchresults li {
   cursor: pointer;
 }
