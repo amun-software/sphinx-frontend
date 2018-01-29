@@ -10,10 +10,10 @@ var currentscene;
 var totalcount;
 var foundcount;
 var itemsperpage = 10;
-var page = 0;
+var page = 1;
 var numberofpages;
 
-var permalinkactive = false;
+var permalinkactive = true;
 
 // const DISCOVERYENDPOINT = 'http://gis-bigdata:11016';
 const DISCOVERYENDPOINT = 'http://10.66.1.238:3000';
@@ -93,7 +93,7 @@ function filterResults() {
   document.getElementById('resultcount').innerHTML = foundcount;
   
   numberofpages = Math.ceil(foundcount/itemsperpage);
-  if(page > numberofpages) page = numberofpages-1;  // page is zero-indexed
+  if(page > numberofpages) page = numberofpages;
   pageResults();
   
   updatePermalink();
@@ -105,21 +105,20 @@ function pageResults() {
     e.classList.remove('paged');
     if(! e.classList.contains('filtered')) {
       counter++;
-      if(counter <= page*itemsperpage || counter > page*itemsperpage + itemsperpage) {
+      if(counter <= page*itemsperpage-itemsperpage || counter > page*itemsperpage) {
         e.classList.add('paged');
       }
     }
   });
   
-  document.getElementById('searchresults').start = page*itemsperpage + 1;
+  document.getElementById('searchresults').start = page*itemsperpage - itemsperpage + 1;
   document.getElementById('resultnav-pages').innerHTML = Array.from(Array(numberofpages), (e,i) =>
-    '<button' + (page==i ? ' disabled' : '') + ' onclick="page=parseInt(this.innerHTML)-1; filterResults();">'+(i+1)+'</button>'
+    '<button' + (i==page-1 ? ' disabled' : '') + ' onclick="page=parseInt(this.innerHTML); filterResults();">'+(i+1)+'</button>'
   ).join("\n");
-  document.getElementById('resultnav-backwards').disabled = (page == 0);
-  document.getElementById('resultnav-forwards').disabled = (page == Math.floor(foundcount/itemsperpage));
+  document.getElementById('resultnav-backwards').disabled = (page == 1);
+  document.getElementById('resultnav-forwards').disabled = (page == numberofpages);
   
-  // paging info not yet included in permalink
-  //updatePermalink();
+  updatePermalink();
 }
 
 function showFootprintOnMap(polygonlatlngs) {
@@ -336,10 +335,10 @@ function initPanels() {
       <ol id='searchresults'>
       </ol>
       <nav id="resultnav">
-        <button id="resultnav-backwards" onclick="if(page != 0) { page--; pageResults(); }">&lt;</button>
+        <button id="resultnav-backwards" onclick="if(page != 1) { page--; pageResults(); }">&lt;</button>
         <div id="resultnav-pages">
         </div>
-        <button id="resultnav-forwards" onclick="if(page != Math.floor(foundcount/itemsperpage)) { page++; pageResults(); }">&gt;</button>
+        <button id="resultnav-forwards" onclick="if(page != numberofpages) { page++; pageResults(); }">&gt;</button>
       </nav>`
   });
   
@@ -373,7 +372,7 @@ function initPanels() {
       
       <div>
         <strong>All metadata:</strong>
-        <input type="checkbox" id="showallmetadata"><label for="showallmetadata">Show</label>
+        <input type="checkbox" id="showallmetadata" onchange="updatePermalink()"><label for="showallmetadata">Show</label>
         <div id="details-allmetadata"></div>
       </div>
       
@@ -435,8 +434,9 @@ function initPanels() {
 function getSearchAndVisualisationState() {
   return Array.from(document.querySelectorAll('input:not(.leaflet-control-layers-selector)'))
     .concat(Array.from(document.getElementsByTagName('select')))
-    .map((e) => e.id + '=' + (e.type=='radio' ? e.checked : e.value))
+    .map((e) => e.id + '=' + (e.type=='radio' || e.type=='checkbox' ? e.checked : e.value))
     .join('&')
+    +`&searchpage=${page}`
     +`&mapstate=${map.getCenter().lat},${map.getCenter().lng}@${map.getZoom()}`;
 }
 
@@ -466,7 +466,12 @@ function updatePermalink() {
 }
 
 function getParamFromPermalink(param) {
-  return window.location.hash.match(new RegExp(param+'=([^&]*)'))[1];
+  const matches = window.location.hash.match(new RegExp(param+'=([^&]*)'));
+  if(matches != null) {
+    return matches[1];
+  } else {
+    return undefined;
+  }
 }
 
 function initFromPermalink() {
@@ -481,6 +486,7 @@ function initFromPermalink() {
   }
   
   if(window.location.hash.substr(0,9) == '#details/') {
+    permalinkactive = false;
     showDetails(window.location.hash.substr(9,65));
   }
   
@@ -493,6 +499,8 @@ function initFromPermalink() {
         if(keyvalue[0] == 'mapstate') {
           const coordszoom = keyvalue[1].split('@');
           map.setView(coordszoom[0].split(','), coordszoom[1]);
+        } else if(keyvalue[0] == 'searchpage') {
+          page = parseInt(keyvalue[1]);
         } else {
           const element = document.getElementById(keyvalue[0]);
           if(keyvalue[1] == 'true') {
