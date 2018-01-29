@@ -135,6 +135,7 @@ function showDetails(scenename) {
     polygon.setLatLngs(getPolygonCoords(info.MTD.metadata[''].FOOTPRINT));
     map.fitBounds(polygon.getBounds()); 
     
+    sidebar.enablePanel('details');
     sidebar.open('details');
     const datetime = info.MTD.metadata[''].DATATAKE_1_DATATAKE_SENSING_START;
     const cloudcoverage = info.MTD.metadata[''].CLOUD_COVERAGE_ASSESSMENT;
@@ -402,6 +403,7 @@ function initPanels() {
         </div>
       </div>`
   });
+  sidebar.disablePanel('details');
   
   // IMPRINT panel
   sidebar.addPanel({
@@ -411,7 +413,8 @@ function initPanels() {
     pane: `
       <h3>Legal stuff</h3>
       <p>Amun Software Inc.</p>
-      <p>Devs: Gözde, Philipp², Niklas, Christoph</p>`
+      <p>Devs: Philipp², Niklas, Christoph</p>
+      <p>The entire Amun Sphinx software package is released under the MIT license. The source code is publicly available on <a href="https://github.com/amun-software">Github</a>.</p>`
   });
   
   // SHOWING/HIDING stuff when appropriate
